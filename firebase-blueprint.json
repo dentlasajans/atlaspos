@@ -1,0 +1,93 @@
+{
+  "entities": {
+    "Category": {
+      "title": "Category",
+      "description": "Product category",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "icon": { "type": "string" }
+      },
+      "required": ["name", "icon"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Restaurant product",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "image": { "type": "string" },
+        "categoryId": { "type": "string" }
+      },
+      "required": ["name", "description", "price", "image", "categoryId"]
+    },
+    "Section": {
+      "title": "Section",
+      "description": "Restaurant section",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Table": {
+      "title": "Table",
+      "description": "Restaurant table",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "sectionId": { "type": "string" }
+      },
+      "required": ["name", "sectionId"]
+    },
+    "OrderItem": {
+      "title": "OrderItem",
+      "description": "Information about an item in an order",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "quantity": { "type": "number" },
+        "notes": { "type": "string", "description": "Optional notes for the order item" }
+      },
+      "required": ["id", "name", "price", "quantity"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Current order for a table",
+      "type": "object",
+      "properties": {
+        "items": { "type": "string", "description": "JSON stringified OrderItem[] to avoid array operations" },
+        "totalAmount": { "type": "number" },
+        "tableId": { "type": "string" },
+        "updatedAt": { "type": "number", "description": "Timestamp of last update" }
+      },
+      "required": ["items", "totalAmount", "tableId", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Categories collection"
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Products collection"
+    },
+    "/sections/{sectionId}": {
+      "schema": { "$ref": "#/entities/Section" },
+      "description": "Sections collection"
+    },
+    "/tables/{tableId}": {
+      "schema": { "$ref": "#/entities/Table" },
+      "description": "Tables collection"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Orders collection"
+    }
+  }
+}

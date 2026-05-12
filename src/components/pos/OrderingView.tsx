@@ -2,10 +2,11 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { CategoryFilter } from './CategoryFilter';
 import { ProductCard } from './ProductCard';
 import { CartSidebar } from './CartSidebar';
-import { Search, Receipt, ArrowLeft } from 'lucide-react';
+import { Search, Receipt, ArrowLeft, ShoppingBag } from 'lucide-react';
 import { useOrder } from '../../context/OrderContext';
 import { Table, useRestaurant } from '../../context/RestaurantContext';
 import { Product } from '../../types';
+import { formatCurrency } from '../../lib/utils';
 
 interface OrderingViewProps {
   table: Table;
@@ -92,7 +93,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ table, onBack, onLog
           </div>
 
           {/* Product Grid */}
-          <div className="flex-1 overflow-y-auto pb-8 scrollbar-hide -mx-2 lg:mx-0 px-2 lg:px-0 touch-pan-y">
+          <div className="flex-1 overflow-y-auto pb-28 md:pb-8 scrollbar-hide -mx-2 lg:mx-0 px-2 lg:px-0 touch-pan-y">
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-6">
                 {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} onAdd={handleAddToCart} />
@@ -108,27 +109,43 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ table, onBack, onLog
         </div>
 
         {/* Right Sidebar (Cart) */}
-        <aside className={`fixed inset-y-0 right-0 z-50 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 w-full sm:w-[380px] lg:w-auto shrink-0 bg-transparent lg:bg-transparent ${isCartOpen ? 'translate-x-0' : 'translate-x-[100%] lg:block'}`}>
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm lg:hidden" onClick={() => setIsCartOpen(false)} aria-hidden="true" />
-          <div className="absolute inset-y-0 right-0 w-full sm:w-[380px] lg:w-full h-full flex flex-col shadow-2xl lg:shadow-none bg-slate-900 lg:bg-transparent border-l border-white/10">
+        <aside className={`fixed inset-y-0 right-0 z-50 transform transition-transform duration-300 ease-in-out w-full sm:w-[380px] shrink-0 bg-transparent ${isCartOpen ? 'translate-x-0' : 'translate-x-[100%]'}`}>
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm sm:hidden" onClick={() => setIsCartOpen(false)} aria-hidden="true" />
+          <div className="absolute inset-y-0 right-0 w-full sm:w-[380px] h-full flex flex-col shadow-2xl bg-slate-900 border-l border-white/10">
             <CartSidebar onClose={() => setIsCartOpen(false)} tableName={table.name} />
           </div>
         </aside>
 
       </main>
 
-      {/* Mobile Cart Floating Button */}
-      <button 
-        className="lg:hidden fixed bottom-6 right-4 w-14 h-14 bg-orange-500 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/30 z-30 text-slate-950 hover:bg-orange-400 active:bg-orange-600 transition-colors active:scale-95"
-        onClick={() => setIsCartOpen(true)}
-      >
-        <Receipt className="w-6 h-6" />
-        {state.items.length > 0 && (
-          <span className="absolute -top-1 -right-1 w-6 h-6 bg-red-500 text-white border-2 border-slate-900 rounded-full text-xs flex items-center justify-center font-bold">
-            {state.items.length}
-          </span>
-        )}
-      </button>
+      {/* Cart Bottom Bar */}
+      {state.items.length > 0 && !isCartOpen && (
+        <div className="fixed bottom-4 left-4 right-4 z-30 flex justify-center pointer-events-none">
+          <button 
+            className="w-full max-w-2xl bg-slate-800 text-slate-100 p-4 rounded-3xl flex items-center justify-between shadow-[0_8px_30px_rgb(0,0,0,0.5)] border border-white/10 active:scale-95 transition-transform pointer-events-auto"
+            onClick={() => setIsCartOpen(true)}
+          >
+            <div className="flex items-center gap-4">
+              <div className="bg-orange-500 w-12 h-12 rounded-xl flex items-center justify-center relative shadow-lg shadow-orange-500/20">
+                <ShoppingBag className="w-6 h-6 text-slate-950" />
+                <span className="absolute -top-2 -right-2 bg-slate-100 text-slate-900 font-bold text-xs w-6 h-6 rounded-full flex items-center justify-center border-2 border-slate-800">
+                  {state.items.reduce((acc, item) => acc + item.quantity, 0)}
+                </span>
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="font-medium text-sm text-slate-400">Siparişi Görüntüle</span>
+                <span className="font-bold text-xl text-orange-400">
+                  {formatCurrency(state.totalAmount + (state.totalAmount * 0.1))}
+                </span>
+              </div>
+            </div>
+            <div className="bg-white/5 p-3 rounded-xl flex items-center gap-2">
+              <span className="font-medium hidden sm:block pr-2">Adisyon</span>
+              <ArrowLeft className="w-5 h-5 rotate-180" />
+            </div>
+          </button>
+        </div>
+      )}
 
     </div>
   );

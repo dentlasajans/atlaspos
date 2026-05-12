@@ -25,9 +25,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
   
   const [newProductState, setNewProductState] = useState<Partial<Product>>({ name: '', price: 0, description: '', image: '', categoryId: '' });
 
-  const handleAddSection = () => {
-    addSection(newSectionName);
-    setNewSectionName('');
+  const handleAddSection = async () => {
+    try {
+      await addSection(newSectionName);
+      setNewSectionName('');
+    } catch (e: any) {
+      console.error(e);
+      alert('Hata oluştur: ' + (e?.message || 'Bilinmeyen Hata. Lütfen Firebase Console\'dan Anonymous Auth\'un etkinleştirildiğinden emin olun.'));
+    }
   };
 
   const handleAddTable = (sectionId: string) => {

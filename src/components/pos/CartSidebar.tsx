@@ -19,7 +19,7 @@ export const CartSidebar: React.FC<{ onClose?: () => void, tableName?: string }>
   const finalTotal = state.totalAmount + tax;
 
   return (
-    <section className="w-full lg:w-[380px] bg-white/5 backdrop-blur-2xl lg:border-l border-white/10 flex flex-col h-full z-10 shrink-0">
+    <section className="w-full sm:w-[380px] bg-white/5 backdrop-blur-2xl sm:border-l border-white/10 flex flex-col h-full z-10 shrink-0">
       {/* Header */}
       <div className="p-6 border-b border-white/10 flex items-center justify-between">
         <div>
@@ -27,7 +27,7 @@ export const CartSidebar: React.FC<{ onClose?: () => void, tableName?: string }>
           <span className="text-xs text-slate-400">Yeni Sipariş</span>
         </div>
         {onClose && (
-          <button onClick={onClose} className="lg:hidden p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors">
+          <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors">
             <X className="w-5 h-5" />
           </button>
         )}
@@ -39,32 +39,39 @@ export const CartSidebar: React.FC<{ onClose?: () => void, tableName?: string }>
             state.items.map((item) => (
               <div
                 key={item.id}
-                className="flex items-center gap-4 bg-white/5 p-3 rounded-2xl border border-white/5 group relative"
+                className="flex flex-col gap-2 bg-white/5 p-4 rounded-2xl border border-white/5"
               >
-                <div className="w-10 h-10 bg-slate-800 rounded-lg flex items-center justify-center font-bold shrink-0">
-                  {item.quantity}x
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-base truncate">{item.name}</p>
+                    {item.description && (
+                      <p className="text-xs text-slate-500 italic truncate mt-0.5">
+                        {item.description.substring(0, 40)}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-sm font-mono shrink-0 font-medium whitespace-nowrap text-orange-400 mt-1">
+                    {formatCurrency(item.price * item.quantity)}
+                  </span>
                 </div>
-                <div className="flex-1 text-sm min-w-0 pr-2">
-                  <p className="font-medium truncate">{item.name}</p>
-                  <p className="text-xs text-slate-500 italic truncate opacity-0 group-hover:opacity-100 transition-opacity absolute -bottom-1"> {item.description && item.description.substring(0,30)}.. </p>
-                  <div className="flex items-center gap-3 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity absolute -top-1 right-2 bg-slate-800/90 backdrop-blur-sm p-1 rounded-lg">
+                
+                <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center gap-4 bg-slate-900/50 p-1.5 rounded-xl border border-white/5">
                     <button
                       onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                      className="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-colors active:scale-95"
+                      className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-slate-300 hover:text-white transition-colors active:scale-95"
                     >
-                      {item.quantity === 1 ? <Trash2 className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
+                      {item.quantity === 1 ? <Trash2 className="w-5 h-5 text-red-400" /> : <Minus className="w-5 h-5" />}
                     </button>
+                    <span className="w-6 text-center font-bold text-lg">{item.quantity}</span>
                     <button
                       onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                      className="w-6 h-6 rounded-md bg-white/10 flex items-center justify-center text-slate-300 hover:text-white transition-colors active:scale-95"
+                      className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-slate-300 hover:text-white transition-colors active:scale-95"
                     >
-                      <Plus className="w-3 h-3" />
+                      <Plus className="w-5 h-5" />
                     </button>
                   </div>
                 </div>
-                <span className="text-sm font-mono shrink-0 font-medium">
-                  {formatCurrency(item.price * item.quantity)}
-                </span>
               </div>
             ))
           ) : (

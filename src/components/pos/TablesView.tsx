@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
 import { useRestaurant, Table, Section } from '../../context/RestaurantContext';
-import { ArrowLeft, LayoutDashboard } from 'lucide-react';
+import { useOrder } from '../../context/OrderContext';
+import { ArrowLeft, LayoutDashboard, Receipt } from 'lucide-react';
+import { formatCurrency } from '../../lib/utils';
 
 interface TablesViewProps {
+  selectedSection: Section | null;
+  onSelectSection: (section: Section | null) => void;
   onLogout: () => void;
   onViewChange: (view: string) => void;
   onSelectTable: (table: Table) => void;
 }
 
-export const TablesView: React.FC<TablesViewProps> = ({ onLogout, onViewChange, onSelectTable }) => {
+export const TablesView: React.FC<TablesViewProps> = ({ selectedSection, onSelectSection, onLogout, onViewChange, onSelectTable }) => {
   const { sections, tables } = useRestaurant();
-  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
+  const { globalState } = useOrder();
 
   return (
     <div className="flex h-[100dvh] bg-transparent overflow-hidden font-sans text-slate-100 flex-col relative w-full">
@@ -19,7 +23,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ onLogout, onViewChange, 
           <header className="mb-6 lg:mb-10 shrink-0 flex items-center gap-4">
             <button 
               onClick={() => {
-                if (selectedSection) setSelectedSection(null);
+                if (selectedSection) onSelectSection(null);
                 else onViewChange('selection');
               }} 
               className="p-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl transition-colors active:scale-95"
@@ -42,19 +46,32 @@ export const TablesView: React.FC<TablesViewProps> = ({ onLogout, onViewChange, 
                  {sections.length === 0 && (
                     <div className="text-slate-500 col-span-full">Henüz bölüm eklenmemiş. Ayarlar modülünden bölüm ve masa ekleyebilirsiniz.</div>
                  )}
-                 {sections.map(section => (
-                    <button
-                        key={section.id}
-                        onClick={() => setSelectedSection(section)}
-                        className="group flex flex-col items-center p-10 bg-white/5 backdrop-blur-md border border-white/10 rounded-[2rem] hover:bg-white/10 transition-colors text-center active:scale-95"
-                    >
-                        <div className="w-20 h-20 bg-orange-500/20 rounded-2xl flex items-center justify-center text-orange-400 mb-6 group-hover:scale-110 transition-transform">
-                            <LayoutDashboard className="w-10 h-10" />
-                        </div>
-                        <h3 className="text-2xl font-semibold mb-2 text-slate-100">{section.name}</h3>
-                        <p className="text-slate-400 text-sm">{tables.filter(t => t.sectionId === section.id).length} Masa</p>
-                    </button>
-                 ))}
+                 {sections.map(section => {
+                    const sectionTables = tables.filter(t => t.sectionId === section.id);
+                    const occupiedCount = sectionTables.filter(t => globalState.orders[t.id] && globalState.orders[t.id].items.length > 0).length;
+
+                    return (
+                        <button
+                            key={section.id}
+                            onClick={() => onSelectSection(section)}
+                            className="group flex flex-col items-center p-10 bg-white/5 backdrop-blur-md border border-white/10 rounded-[2rem] hover:bg-white/10 transition-colors text-center active:scale-95"
+                        >
+                            <div className="w-20 h-20 bg-orange-500/20 rounded-2xl flex items-center justify-center text-orange-400 mb-6 group-hover:scale-110 transition-transform">
+                                <LayoutDashboard className="w-10 h-10" />
+                            </div>
+                            <h3 className="text-2xl font-semibold mb-2 text-slate-100">{section.name}</h3>
+                            <div className="flex items-center gap-2 text-sm text-slate-400 mt-2">
+                                <span>{sectionTables.length} Masa</span>
+                                {occupiedCount > 0 && (
+                                  <>
+                                    <span className="w-1 h-1 rounded-full bg-slate-600" />
+                                    <span className="text-orange-400">{occupiedCount} Dolu</span>
+                                  </>
+                                )}
+                            </div>
+                        </button>
+                    );
+                 })}
               </div>
             ) : (
               <div className="bg-white/5 border border-white/10 p-5 lg:p-6 rounded-3xl">
@@ -65,18 +82,39 @@ export const TablesView: React.FC<TablesViewProps> = ({ onLogout, onViewChange, 
                    }
                    return (
                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 lg:gap-4">
-                       {sectionTables.map(table => (
-                          <button
-                             key={table.id}
-                             onClick={() => onSelectTable(table)}
-                             className="group bg-slate-900 border border-white/10 p-4 lg:p-6 rounded-2xl hover:border-orange-500/50 hover:bg-orange-500/10 transition-all text-center flex flex-col items-center gap-2 active:scale-95"
-                          >
-                              <div className="w-12 h-12 rounded-full bg-slate-800 flex items-center justify-center text-lg font-bold text-slate-300 transition-transform group-hover:text-orange-400 group-hover:scale-110">
-                                 {table.name.replace('Masa', '').trim()}
-                              </div>
-                              <span className="font-medium text-slate-200 text-sm lg:text-base">{table.name}</span>
-                          </button>
-                       ))}
+                       {sectionTables.map(table => {
+                          const tableOrder = globalState.orders[table.id];
+                          const hasOrder = tableOrder && tableOrder.items.length > 0;
+                          const total = tableOrder ? tableOrder.totalAmount + (tableOrder.totalAmount * 0.1) : 0;
+                          
+                          return (
+                            <button
+                                key={table.id}
+                                onClick={() => onSelectTable(table)}
+                                className={`group border p-4 lg:p-6 rounded-2xl transition-all text-center flex flex-col items-center gap-2 active:scale-95 ${
+                                  hasOrder 
+                                    ? 'bg-orange-500/10 border-orange-500/30 hover:border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.1)]' 
+                                    : 'bg-slate-900 border-white/10 hover:border-white/20'
+                                }`}
+                            >
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-transform group-hover:scale-110 ${
+                                  hasOrder ? 'bg-orange-500 text-slate-900' : 'bg-slate-800 text-slate-300'
+                                }`}>
+                                   {table.name.replace('Masa', '').replace('masa', '').trim()}
+                                </div>
+                                <div className="flex flex-col items-center">
+                                  <span className={`font-medium text-sm lg:text-base ${hasOrder ? 'text-orange-400' : 'text-slate-200'}`}>
+                                    {table.name}
+                                  </span>
+                                  {hasOrder && (
+                                    <span className="text-xs font-mono font-bold mt-1 text-slate-300 bg-slate-950/50 px-2 py-0.5 rounded-md border border-white/5">
+                                      {formatCurrency(total)}
+                                    </span>
+                                  )}
+                                </div>
+                            </button>
+                          );
+                       })}
                      </div>
                    );
                  })()}

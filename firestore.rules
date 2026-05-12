@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function incoming() {
+      return request.resource.data;
+    }
+    
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidCategory(data) {
+      return data.keys().hasAll(['name', 'icon']) &&
+             data.keys().size() <= 2 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.icon is string && data.icon.size() > 0 && data.icon.size() <= 100;
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'description', 'price', 'image', 'categoryId']) &&
+             data.keys().size() <= 5 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 150 &&
+             data.description is string && data.description.size() <= 1000 &&
+             data.price is number && data.price >= 0 &&
+             data.image is string && data.image.size() <= 2000 &&
+             data.categoryId is string && data.categoryId.size() <= 128;
+    }
+
+    function isValidSection(data) {
+      return data.keys().hasAll(['name']) &&
+             data.keys().size() <= 1 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100;
+    }
+
+    function isValidTable(data) {
+      return data.keys().hasAll(['name', 'sectionId']) &&
+             data.keys().size() <= 2 &&
+             data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.sectionId is string && data.sectionId.size() <= 128;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['items', 'totalAmount', 'tableId', 'updatedAt']) &&
+             data.keys().size() <= 4 &&
+             data.items is string && data.items.size() <= 1000000 &&
+             data.totalAmount is number && data.totalAmount >= 0 &&
+             data.tableId is string && data.tableId.size() <= 128 &&
+             data.updatedAt is number;
+    }
+
+    match /categories/{categoryId} {
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(categoryId) && isValidCategory(incoming());
+      allow update: if isSignedIn() && isValidCategory(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'icon']);
+      allow delete: if isSignedIn();
+    }
+
+    match /products/{productId} {
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(productId) && isValidProduct(incoming());
+      allow update: if isSignedIn() && isValidProduct(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'description', 'price', 'image', 'categoryId']);
+      allow delete: if isSignedIn();
+    }
+
+    match /sections/{sectionId} {
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(sectionId) && isValidSection(incoming());
+      allow update: if isSignedIn() && isValidSection(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['name']);
+      allow delete: if isSignedIn();
+    }
+
+    match /tables/{tableId} {
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(tableId) && isValidTable(incoming());
+      allow update: if isSignedIn() && isValidTable(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'sectionId']);
+      allow delete: if isSignedIn();
+    }
+
+    match /orders/{orderId} {
+      allow read, list: if isSignedIn();
+      allow create: if isSignedIn() && isValidId(orderId) && isValidOrder(incoming());
+      allow update: if isSignedIn() && isValidOrder(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['items', 'totalAmount', 'tableId', 'updatedAt']);
+      allow delete: if isSignedIn();
+    }
+  }
+}

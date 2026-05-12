@@ -1,69 +1,160 @@
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { OrderItem, Product } from '../types';
+import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { doc, setDoc, deleteDoc, onSnapshot, collection } from 'firebase/firestore';
 
 interface OrderState {
   items: OrderItem[];
   totalAmount: number;
 }
 
-type OrderAction =
-  | { type: 'ADD_ITEM'; payload: { product: Product; notes?: string } }
-  | { type: 'REMOVE_ITEM'; payload: { id: string } }
-  | { type: 'UPDATE_QUANTITY'; payload: { id: string; quantity: number } }
-  | { type: 'CLEAR_ORDER' };
+interface GlobalOrderState {
+  activeTableId: string | null;
+  orders: Record<string, OrderState>;
+}
 
-const initialState: OrderState = {
-  items: [],
-  totalAmount: 0,
-};
+const OrderContext = createContext<{
+  globalState: GlobalOrderState;
+  state: OrderState;
+  dispatch: (action: any) => void;
+} | null>(null);
 
 const calculateTotal = (items: OrderItem[]) => {
   return items.reduce((total, item) => total + item.price * item.quantity, 0);
 };
 
-const orderReducer = (state: OrderState, action: OrderAction): OrderState => {
-  switch (action.type) {
-    case 'ADD_ITEM': {
-      const existingItemIndex = state.items.findIndex(
-        (item) => item.id === action.payload.product.id && item.notes === action.payload.notes
-      );
-
-      let newItems = [...state.items];
-      if (existingItemIndex >= 0) {
-        newItems[existingItemIndex].quantity += 1;
-      } else {
-        newItems.push({ ...action.payload.product, quantity: 1, ...action.payload.notes && {notes: action.payload.notes} });
-      }
-
-      return { ...state, items: newItems, totalAmount: calculateTotal(newItems) };
-    }
-    case 'REMOVE_ITEM': {
-      const newItems = state.items.filter((item) => item.id !== action.payload.id);
-      return { ...state, items: newItems, totalAmount: calculateTotal(newItems) };
-    }
-    case 'UPDATE_QUANTITY': {
-      const newItems = state.items.map((item) =>
-        item.id === action.payload.id ? { ...item, quantity: action.payload.quantity } : item
-      );
-      return { ...state, items: newItems, totalAmount: calculateTotal(newItems) };
-    }
-    case 'CLEAR_ORDER':
-      return initialState;
-    default:
-      return state;
-  }
-};
-
-const OrderContext = createContext<{
-  state: OrderState;
-  dispatch: React.Dispatch<OrderAction>;
-} | null>(null);
-
 export const OrderProvider = ({ children }: { children: ReactNode }) => {
-  const [state, dispatch] = useReducer(orderReducer, initialState);
+  const [globalState, setGlobalState] = useState<GlobalOrderState>({
+    activeTableId: null,
+    orders: {}
+  });
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'orders'), (snapshot) => {
+      const orders: Record<string, OrderState> = {};
+      snapshot.forEach(docSnap => {
+        try {
+           const data = docSnap.data();
+           const items = JSON.parse(data.items || '[]');
+           orders[docSnap.id] = {
+             items,
+             totalAmount: data.totalAmount
+           };
+        } catch (e) {
+           console.error("Error parsing order items for", docSnap.id, e);
+        }
+      });
+      setGlobalState(prev => ({ ...prev, orders }));
+    }, error => handleFirestoreError(error, OperationType.LIST, 'orders'));
+
+    return unsub;
+  }, []);
+
+  const dispatch = async (action: any) => {
+    switch (action.type) {
+      case 'SET_ACTIVE_TABLE': {
+        setGlobalState(prev => ({ ...prev, activeTableId: action.payload.tableId }));
+        break;
+      }
+      case 'ADD_ITEM': {
+        if (!globalState.activeTableId) return;
+        const tableId = globalState.activeTableId;
+        const tableOrder = globalState.orders[tableId] || { items: [], totalAmount: 0 };
+        const existingItemIndex = tableOrder.items.findIndex(
+          (item) => item.id === action.payload.product.id && item.notes === action.payload.notes
+        );
+
+        let newItems = [...tableOrder.items];
+        if (existingItemIndex >= 0) {
+          newItems[existingItemIndex] = {
+            ...newItems[existingItemIndex],
+            quantity: newItems[existingItemIndex].quantity + 1
+          };
+        } else {
+          newItems.push({ ...action.payload.product, quantity: 1, ...action.payload.notes && {notes: action.payload.notes} });
+        }
+        
+        const totalAmount = calculateTotal(newItems);
+        try {
+          await setDoc(doc(db, 'orders', tableId), {
+            tableId,
+            items: JSON.stringify(newItems),
+            totalAmount,
+            updatedAt: Date.now()
+          });
+        } catch(e) {
+          handleFirestoreError(e, OperationType.WRITE, 'orders');
+        }
+        break;
+      }
+      case 'REMOVE_ITEM': {
+        if (!globalState.activeTableId) return;
+        const tableId = globalState.activeTableId;
+        const tableOrder = globalState.orders[tableId];
+        if (!tableOrder) return;
+        
+        const newItems = tableOrder.items.filter((item) => item.id !== action.payload.id);
+        const totalAmount = calculateTotal(newItems);
+        
+        try {
+           if (newItems.length === 0) {
+             await deleteDoc(doc(db, 'orders', tableId));
+           } else {
+             await setDoc(doc(db, 'orders', tableId), {
+                tableId,
+                items: JSON.stringify(newItems),
+                totalAmount,
+                updatedAt: Date.now()
+             });
+           }
+        } catch(e) {
+           handleFirestoreError(e, OperationType.WRITE, 'orders');
+        }
+        break;
+      }
+      case 'UPDATE_QUANTITY': {
+        if (!globalState.activeTableId) return;
+        const tableId = globalState.activeTableId;
+        const tableOrder = globalState.orders[tableId];
+        if (!tableOrder) return;
+        
+        const newItems = tableOrder.items.map((item) =>
+          item.id === action.payload.id ? { ...item, quantity: action.payload.quantity } : item
+        );
+        const totalAmount = calculateTotal(newItems);
+        
+        try {
+          await setDoc(doc(db, 'orders', tableId), {
+            tableId,
+            items: JSON.stringify(newItems),
+            totalAmount,
+            updatedAt: Date.now()
+          });
+        } catch(e) {
+          handleFirestoreError(e, OperationType.WRITE, 'orders');
+        }
+        break;
+      }
+      case 'CLEAR_ORDER': {
+         if (!globalState.activeTableId) return;
+         try {
+           await deleteDoc(doc(db, 'orders', globalState.activeTableId));
+         } catch(e) {
+           handleFirestoreError(e, OperationType.DELETE, 'orders');
+         }
+         break;
+      }
+    }
+  };
 
   return (
-    <OrderContext.Provider value={{ state, dispatch }}>
+    <OrderContext.Provider value={{
+      globalState,
+      state: globalState.activeTableId && globalState.orders[globalState.activeTableId] 
+        ? globalState.orders[globalState.activeTableId] 
+        : { items: [], totalAmount: 0 },
+      dispatch
+    }}>
       {children}
     </OrderContext.Provider>
   );

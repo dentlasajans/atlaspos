@@ -1,5 +1,7 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Category, Product } from '../types';
+import { db, handleFirestoreError, OperationType, auth } from '../lib/firebase';
+import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch } from 'firebase/firestore';
 import { CATEGORIES as INITIAL_CATEGORIES, PRODUCTS as INITIAL_PRODUCTS } from '../data/mock';
 
 export interface Section {
@@ -33,65 +35,133 @@ interface RestaurantContextType {
 const RestaurantContext = createContext<RestaurantContextType | null>(null);
 
 export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
-  const [sections, setSections] = useState<Section[]>([
-    { id: '1', name: 'Teras' },
-    { id: '2', name: 'Bahçe' },
-    { id: '3', name: 'İç Salon' },
-  ]);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [tables, setTables] = useState<Table[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  const [tables, setTables] = useState<Table[]>([
-    { id: 't1', name: 'Masa 1', sectionId: '1' },
-    { id: 't2', name: 'Masa 2', sectionId: '1' },
-    { id: 't3', name: 'Masa 3', sectionId: '1' },
-    { id: 't4', name: 'Masa 4', sectionId: '2' },
-    { id: 't5', name: 'Masa 5', sectionId: '2' },
-    { id: 't6', name: 'Masa 6', sectionId: '3' },
-    { id: 't7', name: 'Masa 7', sectionId: '3' },
-  ]);
+  // Sync data
+  useEffect(() => {
+    let unsubscribes: (() => void)[] = [];
 
-  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
-  const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
+    const unsubscribeSections = onSnapshot(collection(db, 'sections'), (snapshot) => {
+      setSections(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Section)));
+    }, error => handleFirestoreError(error, OperationType.LIST, 'sections'));
+    unsubscribes.push(unsubscribeSections);
 
-  const addSection = (name: string) => {
+    const unsubscribeTables = onSnapshot(collection(db, 'tables'), (snapshot) => {
+      setTables(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Table)));
+    }, error => handleFirestoreError(error, OperationType.LIST, 'tables'));
+    unsubscribes.push(unsubscribeTables);
+
+    const unsubscribeCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
+      setCategories(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Category)));
+    }, error => handleFirestoreError(error, OperationType.LIST, 'categories'));
+    unsubscribes.push(unsubscribeCategories);
+
+    const unsubscribeProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
+      setProducts(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product)));
+    }, error => handleFirestoreError(error, OperationType.LIST, 'products'));
+    unsubscribes.push(unsubscribeProducts);
+
+    setIsInitializing(false);
+
+    return () => unsubscribes.forEach(unsub => unsub());
+  }, []);
+
+  const addSection = async (name: string) => {
     if (!name.trim()) return;
-    setSections(prev => [...prev, { id: Date.now().toString(), name: name.trim() }]);
+    try {
+      const newRef = doc(collection(db, 'sections'));
+      await setDoc(newRef, { name: name.trim() });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, 'sections');
+      throw e;
+    }
   };
   
-  const deleteSection = (id: string) => {
-    setSections(prev => prev.filter(s => s.id !== id));
-    setTables(prev => prev.filter(t => t.sectionId !== id));
+  const deleteSection = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'sections', id));
+      // Optionally delete related tables
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, 'sections');
+    }
   };
 
-  const addTable = (name: string, sectionId: string) => {
+  const addTable = async (name: string, sectionId: string) => {
     if (!name.trim()) return;
-    setTables(prev => [...prev, { id: Date.now().toString(), name: name.trim(), sectionId }]);
+    try {
+      const newRef = doc(collection(db, 'tables'));
+      await setDoc(newRef, { name: name.trim(), sectionId });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, 'tables');
+    }
   };
   
-  const deleteTable = (id: string) => setTables(prev => prev.filter(t => t.id !== id));
-
-  const addCategory = (category: Omit<Category, 'id'>) => {
-    setCategories(prev => [...prev, { ...category, id: Date.now().toString() }]);
+  const deleteTable = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'tables', id));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, 'tables');
+    }
   };
 
-  const updateCategory = (id: string, name: string, icon: string) => {
-    setCategories(prev => prev.map(c => c.id === id ? { ...c, name, icon } : c));
+  const addCategory = async (category: Omit<Category, 'id'>) => {
+    try {
+      const newRef = doc(collection(db, 'categories'));
+      await setDoc(newRef, { name: category.name, icon: category.icon });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, 'categories');
+    }
   };
 
-  const deleteCategory = (id: string) => {
-    setCategories(prev => prev.filter(c => c.id !== id));
-    setProducts(prev => prev.filter(p => p.categoryId !== id));
+  const updateCategory = async (id: string, name: string, icon: string) => {
+    try {
+       await updateDoc(doc(db, 'categories', id), { name, icon });
+    } catch (e) {
+       handleFirestoreError(e, OperationType.UPDATE, 'categories');
+    }
   };
 
-  const addProduct = (product: Omit<Product, 'id'>) => {
-    setProducts(prev => [...prev, { ...product, id: Date.now().toString() }]);
+  const deleteCategory = async (id: string) => {
+    try {
+       await deleteDoc(doc(db, 'categories', id));
+    } catch (e) {
+       handleFirestoreError(e, OperationType.DELETE, 'categories');
+    }
   };
 
-  const updateProduct = (id: string, data: Partial<Product>) => {
-    setProducts(prev => prev.map(p => p.id === id ? { ...p, ...data } : p));
+  const addProduct = async (product: Omit<Product, 'id'>) => {
+    try {
+      const newRef = doc(collection(db, 'products'));
+      await setDoc(newRef, { 
+        name: product.name, 
+        description: product.description || '', 
+        price: product.price, 
+        image: product.image, 
+        categoryId: product.categoryId 
+      });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, 'products');
+    }
   };
 
-  const deleteProduct = (id: string) => {
-    setProducts(prev => prev.filter(p => p.id !== id));
+  const updateProduct = async (id: string, data: Partial<Product>) => {
+    try {
+      await updateDoc(doc(db, 'products', id), data);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, 'products');
+    }
+  };
+
+  const deleteProduct = async (id: string) => {
+    try {
+       await deleteDoc(doc(db, 'products', id));
+    } catch (e) {
+       handleFirestoreError(e, OperationType.DELETE, 'products');
+    }
   };
 
   return (

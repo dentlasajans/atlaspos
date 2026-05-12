@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { OrderProvider } from './context/OrderContext';
 import { RestaurantProvider } from './context/RestaurantContext';
@@ -7,10 +7,22 @@ import { SelectionView } from './components/dashboard/SelectionView';
 import { POSView } from './components/pos/POSView';
 import { SettingsView } from './components/dashboard/SettingsView';
 import { QRMenuView } from './components/qrmenu/QRMenuView';
+import { auth } from './lib/firebase';
+import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
 function MainApp() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentView, setCurrentView] = useState<'selection' | 'pos' | 'kasa' | 'ayarlar'>('selection');
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        signInAnonymously(auth).catch(console.error);
+      }
+    });
+    return unsubscribe;
+  }, []);
+
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
