@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { OrderProvider } from './context/OrderContext';
 import { RestaurantProvider } from './context/RestaurantContext';
 import { LoginView } from './components/auth/LoginView';
@@ -84,13 +84,13 @@ function MainApp() {
 export default function App() {
   return (
     <RestaurantProvider>
-      <BrowserRouter basename="/atlaspos1">
+      <HashRouter>
         <Routes>
           <Route path="/" element={<MainApp />} />
           <Route path="/qrmenu" element={<QRMenuView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
+      </HashRouter>
     </RestaurantProvider>
   );
 }
