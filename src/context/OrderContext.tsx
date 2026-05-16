@@ -29,6 +29,11 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     orders: {}
   });
 
+  const globalStateRef = React.useRef(globalState);
+  useEffect(() => {
+    globalStateRef.current = globalState;
+  }, [globalState]);
+
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'orders'), (snapshot) => {
       const orders: Record<string, OrderState> = {};
@@ -50,16 +55,21 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     return unsub;
   }, []);
 
-  const dispatch = async (action: any) => {
+  const dispatch = React.useCallback(async (action: any) => {
+    const currentState = globalStateRef.current;
+    
     switch (action.type) {
       case 'SET_ACTIVE_TABLE': {
-        setGlobalState(prev => ({ ...prev, activeTableId: action.payload.tableId }));
+        setGlobalState(prev => {
+          if (prev.activeTableId === action.payload.tableId) return prev;
+          return { ...prev, activeTableId: action.payload.tableId };
+        });
         break;
       }
       case 'ADD_ITEM': {
-        if (!globalState.activeTableId) return;
-        const tableId = globalState.activeTableId;
-        const tableOrder = globalState.orders[tableId] || { items: [], totalAmount: 0 };
+        if (!currentState.activeTableId) return;
+        const tableId = currentState.activeTableId;
+        const tableOrder = currentState.orders[tableId] || { items: [], totalAmount: 0 };
         const existingItemIndex = tableOrder.items.findIndex(
           (item) => item.id === action.payload.product.id && item.notes === action.payload.notes
         );
@@ -88,9 +98,9 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         break;
       }
       case 'REMOVE_ITEM': {
-        if (!globalState.activeTableId) return;
-        const tableId = globalState.activeTableId;
-        const tableOrder = globalState.orders[tableId];
+        if (!currentState.activeTableId) return;
+        const tableId = currentState.activeTableId;
+        const tableOrder = currentState.orders[tableId];
         if (!tableOrder) return;
         
         const newItems = tableOrder.items.filter((item) => item.id !== action.payload.id);
@@ -113,9 +123,9 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         break;
       }
       case 'UPDATE_QUANTITY': {
-        if (!globalState.activeTableId) return;
-        const tableId = globalState.activeTableId;
-        const tableOrder = globalState.orders[tableId];
+        if (!currentState.activeTableId) return;
+        const tableId = currentState.activeTableId;
+        const tableOrder = currentState.orders[tableId];
         if (!tableOrder) return;
         
         const newItems = tableOrder.items.map((item) =>
@@ -136,16 +146,16 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         break;
       }
       case 'CLEAR_ORDER': {
-         if (!globalState.activeTableId) return;
+         if (!currentState.activeTableId) return;
          try {
-           await deleteDoc(doc(db, 'orders', globalState.activeTableId));
+           await deleteDoc(doc(db, 'orders', currentState.activeTableId));
          } catch(e) {
            handleFirestoreError(e, OperationType.DELETE, 'orders');
          }
          break;
       }
     }
-  };
+  }, []);
 
   return (
     <OrderContext.Provider value={{

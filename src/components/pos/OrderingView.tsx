@@ -28,11 +28,11 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ table, onBack, onLog
      }
   }, [categories, activeCategory]);
 
-  // Clear order when switching to this view manually for now 
-  // since we don't persist order per table yet
-  useEffect(() => {
-     dispatch({ type: 'CLEAR_ORDER' });
-  }, [table.id, dispatch]);
+  // Removed clear order effect to persist orders
+
+  const handleSendOrder = useCallback(() => {
+    onBack();
+  }, [onBack]);
 
   const handleAddToCart = useCallback((product: Product) => {
     dispatch({ type: 'ADD_ITEM', payload: { product } });
@@ -112,7 +112,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ table, onBack, onLog
         <aside className={`fixed inset-y-0 right-0 z-50 transform transition-transform duration-300 ease-in-out w-full sm:w-[380px] shrink-0 bg-transparent ${isCartOpen ? 'translate-x-0' : 'translate-x-[100%]'}`}>
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm sm:hidden" onClick={() => setIsCartOpen(false)} aria-hidden="true" />
           <div className="absolute inset-y-0 right-0 w-full sm:w-[380px] h-full flex flex-col shadow-2xl bg-slate-900 border-l border-white/10">
-            <CartSidebar onClose={() => setIsCartOpen(false)} tableName={table.name} />
+            <CartSidebar onClose={() => setIsCartOpen(false)} tableName={table.name} onSend={handleSendOrder} />
           </div>
         </aside>
 
@@ -135,7 +135,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ table, onBack, onLog
               <div className="flex flex-col items-start">
                 <span className="font-medium text-sm text-slate-400">Siparişi Görüntüle</span>
                 <span className="font-bold text-xl text-orange-400">
-                  {formatCurrency(state.totalAmount + (state.totalAmount * 0.1))}
+                  {formatCurrency(state.totalAmount)}
                 </span>
               </div>
             </div>

@@ -14,16 +14,6 @@ function MainApp() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentView, setCurrentView] = useState<'selection' | 'pos' | 'kasa' | 'ayarlar'>('selection');
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        signInAnonymously(auth).catch(console.error);
-      }
-    });
-    return unsubscribe;
-  }, []);
-
-
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
     setCurrentView('selection');
@@ -94,6 +84,15 @@ function MainApp() {
 }
 
 export default function App() {
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        signInAnonymously(auth).catch(console.error);
+      }
+    });
+    return unsubscribe;
+  }, []);
+
   return (
     <RestaurantProvider>
       <HashRouter>

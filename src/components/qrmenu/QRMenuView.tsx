@@ -65,11 +65,17 @@ export const QRMenuView: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredProducts.map((product) => (
                 <div key={product.id} className="bg-white/5 border border-white/10 p-4 rounded-3xl flex gap-4 overflow-hidden">
-                    <img 
-                        src={product.image} 
-                        alt={product.name} 
-                        className="w-24 h-24 object-cover rounded-2xl shrink-0" 
-                    />
+                    {product.image ? (
+                        <img 
+                            src={product.image} 
+                            alt={product.name} 
+                            className="w-24 h-24 object-cover rounded-2xl shrink-0" 
+                        />
+                    ) : (
+                        <div className="w-24 h-24 bg-white/5 rounded-2xl shrink-0 flex items-center justify-center">
+                            <span className="text-slate-500 text-xs">Resim Yok</span>
+                        </div>
+                    )}
                     <div className="flex flex-col flex-1 min-w-0">
                         <h3 className="font-semibold text-slate-100 text-lg leading-tight mb-1 truncate">{product.name}</h3>
                         <p className="text-slate-400 text-sm line-clamp-2 mb-2 flex-1">{product.description}</p>

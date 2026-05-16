@@ -85,7 +85,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ selectedSection, onSelec
                        {sectionTables.map(table => {
                           const tableOrder = globalState.orders[table.id];
                           const hasOrder = tableOrder && tableOrder.items.length > 0;
-                          const total = tableOrder ? tableOrder.totalAmount + (tableOrder.totalAmount * 0.1) : 0;
+                          const total = tableOrder ? tableOrder.totalAmount : 0;
                           
                           return (
                             <button

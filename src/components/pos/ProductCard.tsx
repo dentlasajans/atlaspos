@@ -17,11 +17,17 @@ export const ProductCard = React.memo(({ product, onAdd }: ProductCardProps) => 
       <div className="absolute -top-4 -right-4 w-16 h-16 bg-orange-500/10 rounded-full blur-2xl pointer-events-none"></div>
       
       <div className="h-24 md:h-32 bg-slate-800 rounded-xl md:rounded-2xl mb-3 md:mb-4 overflow-hidden relative shrink-0 pointer-events-none">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-        />
+        {product.image ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="w-full h-full bg-slate-800 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+             <span className="text-slate-500 text-xs text-center px-2">Resim Yok</span>
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
         <div className="absolute bottom-2 left-2 md:left-3 font-semibold text-slate-100 text-sm md:text-base leading-tight">{product.name}</div>
       </div>

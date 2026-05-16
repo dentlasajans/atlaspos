@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { Category, Product } from '../types';
 import { db, handleFirestoreError, OperationType, auth } from '../lib/firebase';
 import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { CATEGORIES as INITIAL_CATEGORIES, PRODUCTS as INITIAL_PRODUCTS } from '../data/mock';
 
 export interface Section {
@@ -45,29 +46,54 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     let unsubscribes: (() => void)[] = [];
 
-    const unsubscribeSections = onSnapshot(collection(db, 'sections'), (snapshot) => {
-      setSections(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Section)));
-    }, error => handleFirestoreError(error, OperationType.LIST, 'sections'));
-    unsubscribes.push(unsubscribeSections);
+    const setupSubscriptions = () => {
+      const unsubscribeSections = onSnapshot(collection(db, 'sections'), (snapshot) => {
+        setSections(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Section)));
+      }, error => {
+         console.error('sections error', error);
+      });
+      unsubscribes.push(unsubscribeSections);
 
-    const unsubscribeTables = onSnapshot(collection(db, 'tables'), (snapshot) => {
-      setTables(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Table)));
-    }, error => handleFirestoreError(error, OperationType.LIST, 'tables'));
-    unsubscribes.push(unsubscribeTables);
+      const unsubscribeTables = onSnapshot(collection(db, 'tables'), (snapshot) => {
+        setTables(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Table)));
+      }, error => {
+         console.error('tables error', error);
+      });
+      unsubscribes.push(unsubscribeTables);
 
-    const unsubscribeCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
-      setCategories(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Category)));
-    }, error => handleFirestoreError(error, OperationType.LIST, 'categories'));
-    unsubscribes.push(unsubscribeCategories);
+      const unsubscribeCategories = onSnapshot(collection(db, 'categories'), (snapshot) => {
+        setCategories(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Category)));
+      }, error => {
+         console.error('categories error', error);
+      });
+      unsubscribes.push(unsubscribeCategories);
 
-    const unsubscribeProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
-      setProducts(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product)));
-    }, error => handleFirestoreError(error, OperationType.LIST, 'products'));
-    unsubscribes.push(unsubscribeProducts);
+      const unsubscribeProducts = onSnapshot(collection(db, 'products'), (snapshot) => {
+        setProducts(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Product)));
+      }, error => {
+         console.error('products error', error);
+      });
+      unsubscribes.push(unsubscribeProducts);
 
-    setIsInitializing(false);
+      setIsInitializing(false);
+    };
 
-    return () => unsubscribes.forEach(unsub => unsub());
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setupSubscriptions();
+      } else {
+        setSections([]);
+        setTables([]);
+        setCategories([]);
+        setProducts([]);
+        setIsInitializing(true);
+      }
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribes.forEach(unsub => unsub());
+    };
   }, []);
 
   const addSection = async (name: string) => {
