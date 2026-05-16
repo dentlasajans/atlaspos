@@ -8,12 +8,14 @@ interface SettingsViewProps {
   onViewChange: (view: string) => void;
 }
 
-type Tab = 'tables' | 'menu';
+type Tab = 'tables' | 'menu' | 'users' | 'company';
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChange }) => {
   const { 
       sections, tables, addSection, deleteSection, addTable, deleteTable,
-      categories, products, addCategory, deleteCategory, addProduct, deleteProduct, updateProduct
+      categories, products, addCategory, deleteCategory, addProduct, deleteProduct, updateProduct,
+      appUsers, addAppUser, deleteAppUser, updateAppUser,
+      restaurantInfo, updateRestaurantInfo
   } = useRestaurant();
   
   const [activeTab, setActiveTab] = useState<Tab>('tables');
@@ -23,14 +25,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
 
   const [newCategoryName, setNewCategoryName] = useState('');
   
-  const [newProductState, setNewProductState] = useState<Partial<Product>>({ name: '', price: 0, description: '', image: '', categoryId: '' });
+  const [newProductState, setNewProductState] = useState<Partial<Product>>({ name: '', price: 0, description: '', image: '', categoryId: '', hasStock: false, stockCount: 0 });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  const [newUser, setNewUser] = useState({ username: '', password: '' });
+  const [infoState, setInfoState] = useState({
+      name: restaurantInfo?.name || '',
+      description: restaurantInfo?.description || '',
+      logo: restaurantInfo?.logo || '',
+      instagram: restaurantInfo?.instagram || '',
+      twitter: restaurantInfo?.twitter || '',
+      facebook: restaurantInfo?.facebook || '',
+      tiktok: restaurantInfo?.tiktok || ''
+  });
+
   const [isUploading, setIsUploading] = useState(false);
 
-  const generateSignature = async (timestamp: number, apiSecret: string) => {
-    const minifiedStr = `timestamp=${timestamp}${apiSecret}`;
+  const generateSignature = async (timestamp: number, apiSecret: string, publicId?: string) => {
+    const paramsToSign = publicId 
+      ? `public_id=${publicId}&timestamp=${timestamp}${apiSecret}`
+      : `timestamp=${timestamp}${apiSecret}`;
     const encoder = new TextEncoder();
-    const data = encoder.encode(minifiedStr);
+    const data = encoder.encode(paramsToSign);
     const hashBuffer = await crypto.subtle.digest('SHA-1', data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -82,17 +98,94 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean) => {
+  const deleteCloudinaryImage = async (url: string) => {
+    if (!url || !url.includes("res.cloudinary.com")) return;
+    
+    const uploadIndex = url.indexOf("/upload/");
+    if (uploadIndex === -1) return;
+    const afterUpload = url.substring(uploadIndex + 8);
+    const versionSlashIndex = afterUpload.indexOf("/");
+    if (versionSlashIndex === -1) return;
+    const publicIdWithExt = afterUpload.substring(versionSlashIndex + 1);
+    const lastDot = publicIdWithExt.lastIndexOf(".");
+    const publicIdFinal = lastDot !== -1 ? publicIdWithExt.substring(0, lastDot) : publicIdWithExt;
+
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || localStorage.getItem('cloudinary_cloud_name');
+    if (!cloudName) return;
+
+    const apiKey = "943986857686586";
+    const apiSecret = "LzarS09zBKRvsGhph9s4pQbwzEI";
+    const timestamp = Math.round((new Date).getTime() / 1000);
+    const signature = await generateSignature(timestamp, apiSecret, publicIdFinal);
+
+    const data = new FormData();
+    data.append("public_id", publicIdFinal);
+    data.append("api_key", apiKey);
+    data.append("timestamp", timestamp.toString());
+    data.append("signature", signature);
+
+    try {
+        await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
+            method: "POST",
+            body: data,
+        });
+    } catch(e) {
+        console.error("Cloudinary silme hatası", e);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean, isLogo: boolean = false) => {
       const file = e.target.files?.[0];
       if (!file) return;
       const url = await uploadImageToCloudinary(file);
       if (url) {
-          if (isEdit && editingProduct) {
+          if (isLogo) {
+               if (infoState.logo) {
+                   deleteCloudinaryImage(infoState.logo);
+               }
+               setInfoState(prev => ({ ...prev, logo: url }));
+          } else if (isEdit && editingProduct) {
+              // Delete immediately if there is a preview image that doesn't match the original
+              const originalProduct = products.find(p => p.id === editingProduct.id);
+              if (originalProduct && editingProduct.image && editingProduct.image !== originalProduct.image) {
+                  deleteCloudinaryImage(editingProduct.image);
+              } else if (!originalProduct && editingProduct.image) {
+                  deleteCloudinaryImage(editingProduct.image);
+              }
               setEditingProduct({ ...editingProduct, image: url });
           } else {
+              if (newProductState.image) {
+                  deleteCloudinaryImage(newProductState.image);
+              }
               setNewProductState(prev => ({ ...prev, image: url }));
           }
       }
+  };
+
+  const clearNewProductImage = () => {
+    if (newProductState.image) {
+      deleteCloudinaryImage(newProductState.image);
+    }
+    setNewProductState(p => ({...p, image: ''}));
+  };
+
+  const clearLogoImage = () => {
+    if (infoState.logo) {
+        deleteCloudinaryImage(infoState.logo);
+    }
+    setInfoState(p => ({...p, logo: ''}));
+  };
+
+  const handleCancelEdit = () => {
+      if (editingProduct) {
+          const original = products.find(p => p.id === editingProduct.id);
+          if (original && original.image !== editingProduct.image && editingProduct.image) {
+              deleteCloudinaryImage(editingProduct.image);
+          } else if (!original && editingProduct.image) {
+              deleteCloudinaryImage(editingProduct.image);
+          }
+      }
+      setEditingProduct(null);
   };
 
   const handleAddSection = async () => {
@@ -127,20 +220,48 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
               price: Number(newProductState.price),
               description: newProductState.description || '',
               image: newProductState.image || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80',
-              categoryId: newProductState.categoryId
+              categoryId: newProductState.categoryId,
+              hasStock: newProductState.hasStock || false,
+              stockCount: Number(newProductState.stockCount) || 0
           });
-          setNewProductState({ name: '', price: 0, description: '', image: '', categoryId: '' });
+          setNewProductState({ name: '', price: 0, description: '', image: '', categoryId: '', hasStock: false, stockCount: 0 });
       }
   };
 
   const handleUpdateProduct = () => {
       if (editingProduct && editingProduct.name && editingProduct.price && editingProduct.categoryId) {
+          const original = products.find(p => p.id === editingProduct.id);
+          if (original && original.image && original.image !== editingProduct.image) {
+              deleteCloudinaryImage(original.image);
+          }
+
           updateProduct(editingProduct.id, {
               ...editingProduct,
-              price: Number(editingProduct.price)
+              price: Number(editingProduct.price),
+              stockCount: Number(editingProduct.stockCount) || 0
           });
           setEditingProduct(null);
       }
+  };
+
+  const handleDeleteProduct = (id: string) => {
+      const product = products.find(p => p.id === id);
+      if (product && product.image) {
+          deleteCloudinaryImage(product.image);
+      }
+      deleteProduct(id);
+  };
+
+  const handleAddUser = () => {
+      if (newUser.username && newUser.password) {
+          addAppUser({ username: newUser.username, password: newUser.password });
+          setNewUser({ username: '', password: '' });
+      }
+  };
+
+  const handleUpdateInfo = () => {
+      updateRestaurantInfo(infoState);
+      alert('İşletme bilgileri güncellendi!');
   };
 
   return (
@@ -150,7 +271,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
           <header className="mb-6 lg:mb-10 shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button 
-                onClick={() => onViewChange('selection')} 
+                onClick={() => {
+                  if (newProductState.image) deleteCloudinaryImage(newProductState.image);
+                  onViewChange('selection');
+                }} 
                 className="p-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl transition-colors active:scale-95"
               >
                 <ArrowLeft className="w-6 h-6" />
@@ -173,6 +297,18 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
                   className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'menu' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
                 >
                     Menü
+                </button>
+                <button 
+                  onClick={() => setActiveTab('users')}
+                  className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'users' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                >
+                    Kullanıcılar
+                </button>
+                <button 
+                  onClick={() => setActiveTab('company')}
+                  className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'company' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                >
+                    İşletmem
                 </button>
             </div>
           </header>
@@ -310,7 +446,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
                           {newProductState.image ? (
                               <div className="h-full bg-slate-900 border border-white/10 rounded-xl flex items-center justify-between px-3 overflow-hidden">
                                   <img src={newProductState.image} alt="Uploaded" className="h-8 w-8 object-cover rounded-md" />
-                                  <button onClick={() => setNewProductState(p => ({...p, image: ''}))} className="text-red-400 text-xs hover:underline">Kaldır</button>
+                                  <button onClick={clearNewProductImage} className="text-red-400 text-xs hover:underline">Kaldır</button>
                               </div>
                           ) : (
                               <label className="h-full bg-slate-900 border border-white/10 rounded-xl flex items-center justify-center px-4 cursor-pointer hover:bg-slate-800 transition-colors">
@@ -332,6 +468,26 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
                     value={newProductState.description} onChange={e => setNewProductState(p => ({...p, description: e.target.value}))}
                     className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500"
                   />
+                  <div className="flex items-center gap-4 bg-slate-900 border border-white/10 rounded-xl px-4 py-2">
+                     <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={newProductState.hasStock} 
+                          onChange={e => setNewProductState(p => ({...p, hasStock: e.target.checked}))}
+                          className="w-4 h-4 rounded border-white/10 text-purple-500 focus:ring-purple-500/50 bg-white/5"
+                        />
+                        Stok Takibi Yapılsın
+                     </label>
+                     {newProductState.hasStock && (
+                        <input 
+                           type="number" 
+                           placeholder="Stok Adedi" 
+                           value={newProductState.stockCount ?? ''} 
+                           onChange={e => setNewProductState(p => ({...p, stockCount: Number(e.target.value)}))}
+                           className="bg-white/5 border border-white/10 rounded-lg px-3 py-1 text-sm focus:outline-none focus:border-purple-500 w-32"
+                        />
+                     )}
+                  </div>
                 </div>
 
                 <div className="space-y-4">
@@ -362,7 +518,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
                                            <button onClick={() => setEditingProduct(product)} className="text-blue-400 hover:text-blue-300 p-2 bg-blue-400/10 rounded-lg inline-flex" title="Ürünü Düzenle">
                                                Düzenle
                                            </button>
-                                           <button onClick={() => deleteProduct(product.id)} className="text-red-400 hover:text-red-300 p-2 bg-red-400/10 rounded-lg inline-flex" title="Ürünü Sil">
+                                           <button onClick={() => handleDeleteProduct(product.id)} className="text-red-400 hover:text-red-300 p-2 bg-red-400/10 rounded-lg inline-flex" title="Ürünü Sil">
                                                <Trash2 className="w-4 h-4" />
                                            </button>
                                        </td>
@@ -380,7 +536,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
                 {/* Edit Product Modal */}
                 {editingProduct && (
                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={() => setEditingProduct(null)} />
+                      <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" onClick={handleCancelEdit} />
                       <div className="relative w-full max-w-lg bg-slate-900 border border-white/10 rounded-3xl p-6 z-[101]">
                           <h2 className="text-xl font-bold mb-4">Ürünü Düzenle</h2>
                           <div className="space-y-4">
@@ -412,8 +568,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
                                  <label className="block text-sm text-slate-400 mb-1">Açıklama</label>
                                  <textarea value={editingProduct.description} onChange={e => setEditingProduct({...editingProduct, description: e.target.value})} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500" rows={3}></textarea>
                               </div>
+                              <div className="flex items-center gap-4 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                                 <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                                    <input 
+                                      type="checkbox" 
+                                      checked={editingProduct.hasStock || false} 
+                                      onChange={e => setEditingProduct({...editingProduct, hasStock: e.target.checked})}
+                                      className="w-4 h-4 rounded border-white/10 text-purple-500 focus:ring-purple-500/50 bg-slate-900"
+                                    />
+                                    Stok Takibi Yapılsın
+                                 </label>
+                                 {editingProduct.hasStock && (
+                                    <input 
+                                       type="number" 
+                                       placeholder="Stok Adedi" 
+                                       value={editingProduct.stockCount ?? ''} 
+                                       onChange={e => setEditingProduct({...editingProduct, stockCount: Number(e.target.value)})}
+                                       className="bg-slate-900 border border-white/10 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-purple-500 w-32"
+                                    />
+                                 )}
+                              </div>
                               <div className="flex justify-end gap-3 mt-6">
-                                  <button onClick={() => setEditingProduct(null)} className="px-4 py-2 rounded-xl text-slate-400 hover:text-white transition-colors">İptal</button>
+                                  <button onClick={handleCancelEdit} className="px-4 py-2 rounded-xl text-slate-400 hover:text-white transition-colors">İptal</button>
                                   <button onClick={handleUpdateProduct} className="bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 px-6 py-2 rounded-xl font-semibold transition-colors">Kaydet</button>
                               </div>
                           </div>
@@ -422,6 +598,91 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
                 )}
 
               </>
+            )}
+
+            {activeTab === 'users' && (
+               <div className="space-y-6">
+                  <div className="bg-white/5 border border-white/10 p-5 lg:p-6 rounded-3xl">
+                     <h2 className="text-xl font-semibold mb-4 text-slate-200">Kullanıcı Ekle</h2>
+                     <div className="flex gap-3">
+                        <input type="text" placeholder="Kullanıcı Adı" value={newUser.username} onChange={e => setNewUser(p => ({...p, username: e.target.value}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500" />
+                        <input type="text" placeholder="Şifre" value={newUser.password} onChange={e => setNewUser(p => ({...p, password: e.target.value}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500" />
+                        <button onClick={handleAddUser} disabled={!newUser.username || !newUser.password} className="bg-emerald-500 text-slate-950 px-6 py-2 rounded-xl font-semibold disabled:opacity-50 active:scale-95">Ekle</button>
+                     </div>
+                  </div>
+
+                  <div className="bg-white/5 border border-white/10 p-5 lg:p-6 rounded-3xl">
+                     <h2 className="text-xl font-semibold mb-4 text-slate-200">Mevcut Kullanıcılar</h2>
+                     <div className="space-y-2">
+                        {appUsers.map(user => (
+                           <div key={user.id} className="flex justify-between items-center bg-slate-900 border border-white/10 p-4 rounded-xl">
+                              <div>
+                                 <div className="font-semibold">{user.username}</div>
+                                 <div className="text-sm text-slate-400">Şifre: {user.password}</div>
+                              </div>
+                              <button onClick={() => deleteAppUser(user.id)} className="text-red-400 hover:text-red-300 p-2 bg-red-400/10 rounded-lg"><Trash2 className="w-5 h-5"/></button>
+                           </div>
+                        ))}
+                        {appUsers.length === 0 && <div className="text-slate-500">Hiç kullanıcı yok.</div>}
+                     </div>
+                  </div>
+               </div>
+            )}
+
+            {activeTab === 'company' && (
+               <div className="bg-white/5 border border-white/10 p-5 lg:p-6 rounded-3xl space-y-6">
+                  <h2 className="text-xl font-semibold text-slate-200">İşletme Bilgileri</h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div>
+                        <label className="block text-sm text-slate-400 mb-1">İşletme Adı</label>
+                        <input type="text" value={infoState.name} onChange={e => setInfoState(p => ({...p, name: e.target.value}))} className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500" />
+                     </div>
+                     <div>
+                        <label className="block text-sm text-slate-400 mb-1">İşletme Logosu / Resmi</label>
+                        <div className="flex items-center gap-4">
+                           {infoState.logo ? (
+                               <div className="relative">
+                                   <img src={infoState.logo} alt="Logo" className="w-12 h-12 rounded bg-slate-800 object-cover" />
+                                   <button onClick={clearLogoImage} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">x</button>
+                               </div>
+                           ) : (
+                               <div className="w-12 h-12 rounded bg-slate-800 border border-dashed border-white/20 flex flex-col items-center justify-center text-xs text-slate-500">...</div>
+                           )}
+                           <label className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 cursor-pointer hover:bg-white/10 transition-colors">
+                               <span className="text-sm">{isUploading ? 'Yükleniyor...' : 'Resim Yükle'}</span>
+                               <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, false, true)} disabled={isUploading} />
+                           </label>
+                        </div>
+                     </div>
+                     <div className="md:col-span-2">
+                        <label className="block text-sm text-slate-400 mb-1">Açıklama (QR Menüde Görünür)</label>
+                        <textarea value={infoState.description} onChange={e => setInfoState(p => ({...p, description: e.target.value}))} className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500" rows={3}></textarea>
+                     </div>
+                     <div>
+                        <label className="block text-sm text-slate-400 mb-1">Instagram Linki (Örn: https://instagram.com/atlaspos)</label>
+                        <input type="text" value={infoState.instagram} onChange={e => setInfoState(p => ({...p, instagram: e.target.value}))} className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500" />
+                     </div>
+                     <div>
+                        <label className="block text-sm text-slate-400 mb-1">Twitter Linki (Örn: https://twitter.com/atlaspos)</label>
+                        <input type="text" value={infoState.twitter} onChange={e => setInfoState(p => ({...p, twitter: e.target.value}))} className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500" />
+                     </div>
+                     <div>
+                        <label className="block text-sm text-slate-400 mb-1">Facebook Linki (Örn: https://facebook.com/atlaspos)</label>
+                        <input type="text" value={infoState.facebook} onChange={e => setInfoState(p => ({...p, facebook: e.target.value}))} className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500" />
+                     </div>
+                     <div>
+                        <label className="block text-sm text-slate-400 mb-1">TikTok Linki (Örn: https://tiktok.com/@atlaspos)</label>
+                        <input type="text" value={infoState.tiktok} onChange={e => setInfoState(p => ({...p, tiktok: e.target.value}))} className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500" />
+                     </div>
+                  </div>
+                  
+                  <div className="flex justify-end pt-4">
+                     <button onClick={handleUpdateInfo} className="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 rounded-xl font-semibold transition-colors shadow-lg shadow-blue-500/20 active:scale-95">
+                        Kaydet
+                     </button>
+                  </div>
+               </div>
             )}
 
           </div>

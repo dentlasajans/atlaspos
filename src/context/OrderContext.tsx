@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { OrderItem, Product } from '../types';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
-import { doc, setDoc, deleteDoc, onSnapshot, collection } from 'firebase/firestore';
+import { doc, setDoc, deleteDoc, onSnapshot, collection, updateDoc, increment } from 'firebase/firestore';
 
 interface OrderState {
   items: OrderItem[];
@@ -92,6 +92,12 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
             totalAmount,
             updatedAt: Date.now()
           });
+          
+          if (action.payload.product.hasStock) {
+            await updateDoc(doc(db, 'products', action.payload.product.id), {
+              stockCount: increment(-1)
+            });
+          }
         } catch(e) {
           handleFirestoreError(e, OperationType.WRITE, 'orders');
         }
@@ -103,6 +109,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         const tableOrder = currentState.orders[tableId];
         if (!tableOrder) return;
         
+        const removedItem = tableOrder.items.find(item => item.id === action.payload.id);
         const newItems = tableOrder.items.filter((item) => item.id !== action.payload.id);
         const totalAmount = calculateTotal(newItems);
         
@@ -117,6 +124,12 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
                 updatedAt: Date.now()
              });
            }
+           
+           if (removedItem && removedItem.hasStock) {
+              await updateDoc(doc(db, 'products', removedItem.id), {
+                 stockCount: increment(removedItem.quantity)
+              });
+           }
         } catch(e) {
            handleFirestoreError(e, OperationType.WRITE, 'orders');
         }
@@ -128,6 +141,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         const tableOrder = currentState.orders[tableId];
         if (!tableOrder) return;
         
+        const itemToUpdate = tableOrder.items.find(item => item.id === action.payload.id);
         const newItems = tableOrder.items.map((item) =>
           item.id === action.payload.id ? { ...item, quantity: action.payload.quantity } : item
         );
@@ -140,6 +154,13 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
             totalAmount,
             updatedAt: Date.now()
           });
+
+          if (itemToUpdate && itemToUpdate.hasStock) {
+             const quantityDiff = action.payload.quantity - itemToUpdate.quantity;
+             await updateDoc(doc(db, 'products', itemToUpdate.id), {
+                stockCount: increment(-quantityDiff)
+             });
+          }
         } catch(e) {
           handleFirestoreError(e, OperationType.WRITE, 'orders');
         }
@@ -147,8 +168,20 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
       }
       case 'CLEAR_ORDER': {
          if (!currentState.activeTableId) return;
+         const tableOrderToClear = currentState.orders[currentState.activeTableId];
+
          try {
            await deleteDoc(doc(db, 'orders', currentState.activeTableId));
+
+           if (tableOrderToClear && tableOrderToClear.items) {
+              for (const item of tableOrderToClear.items) {
+                 if (item.hasStock) {
+                    await updateDoc(doc(db, 'products', item.id), {
+                       stockCount: increment(item.quantity)
+                    });
+                 }
+              }
+           }
          } catch(e) {
            handleFirestoreError(e, OperationType.DELETE, 'orders');
          }

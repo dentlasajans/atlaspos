@@ -11,8 +11,16 @@ interface ProductCardProps {
 export const ProductCard = React.memo(({ product, onAdd }: ProductCardProps) => {
   return (
     <div
-      onClick={() => onAdd(product)}
-      className="group bg-white/5 border border-white/10 p-3 md:p-5 rounded-2xl md:rounded-3xl hover:bg-white/10 hover:-translate-y-1 transition-all cursor-pointer relative overflow-hidden flex flex-col active:scale-95"
+      onClick={() => {
+        if (!product.hasStock || (product.stockCount && product.stockCount > 0)) {
+          onAdd(product);
+        }
+      }}
+      className={`group bg-white/5 border border-white/10 p-3 md:p-5 rounded-2xl md:rounded-3xl hover:bg-white/10 transition-all relative overflow-hidden flex flex-col ${
+        product.hasStock && (product.stockCount || 0) <= 0 
+        ? 'opacity-50 cursor-not-allowed grayscale' 
+        : 'hover:-translate-y-1 active:scale-95 cursor-pointer'
+      }`}
     >
       <div className="absolute -top-4 -right-4 w-16 h-16 bg-orange-500/10 rounded-full blur-2xl pointer-events-none"></div>
       
@@ -29,6 +37,13 @@ export const ProductCard = React.memo(({ product, onAdd }: ProductCardProps) => 
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
+        {product.hasStock && (
+           <div className={`absolute top-2 left-2 bg-slate-900/80 backdrop-blur-md px-2 py-1 rounded-md text-[10px] md:text-xs font-medium border border-white/10 shadow-sm ${
+              (product.stockCount || 0) > 0 ? 'text-emerald-400' : 'text-red-400'
+           }`}>
+             {(product.stockCount || 0) > 0 ? `Stok: ${product.stockCount}` : 'Tükendi'}
+           </div>
+        )}
         <div className="absolute bottom-2 left-2 md:left-3 font-semibold text-slate-100 text-sm md:text-base leading-tight">{product.name}</div>
       </div>
       

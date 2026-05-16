@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { Category, Product } from '../types';
+import { Category, Product, AppUser, RestaurantInfo } from '../types';
 import { db, handleFirestoreError, OperationType, auth } from '../lib/firebase';
 import { collection, doc, setDoc, updateDoc, deleteDoc, onSnapshot, writeBatch } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -21,6 +21,8 @@ interface RestaurantContextType {
   tables: Table[];
   categories: Category[];
   products: Product[];
+  appUsers: AppUser[];
+  restaurantInfo: RestaurantInfo | null;
   addSection: (name: string) => void;
   deleteSection: (id: string) => void;
   addTable: (name: string, sectionId: string) => void;
@@ -31,6 +33,10 @@ interface RestaurantContextType {
   addProduct: (product: Omit<Product, 'id'>) => void;
   updateProduct: (id: string, product: Partial<Product>) => void;
   deleteProduct: (id: string) => void;
+  addAppUser: (user: Omit<AppUser, 'id'>) => void;
+  updateAppUser: (id: string, user: Partial<AppUser>) => void;
+  deleteAppUser: (id: string) => void;
+  updateRestaurantInfo: (info: RestaurantInfo) => void;
 }
 
 const RestaurantContext = createContext<RestaurantContextType | null>(null);
@@ -40,6 +46,8 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
   const [tables, setTables] = useState<Table[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [appUsers, setAppUsers] = useState<AppUser[]>([]);
+  const [restaurantInfo, setRestaurantInfo] = useState<RestaurantInfo | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
   // Sync data
@@ -75,6 +83,24 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
       });
       unsubscribes.push(unsubscribeProducts);
 
+      const unsubscribeUsers = onSnapshot(collection(db, 'appusers'), (snapshot) => {
+        setAppUsers(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as AppUser)));
+      }, error => {
+         console.error('users error', error);
+      });
+      unsubscribes.push(unsubscribeUsers);
+
+      const unsubscribeInfo = onSnapshot(doc(db, 'settings', 'restaurantInfo'), (docSnap) => {
+        if (docSnap.exists()) {
+          setRestaurantInfo({ id: docSnap.id, ...docSnap.data() } as RestaurantInfo);
+        } else {
+          setRestaurantInfo(null);
+        }
+      }, error => {
+         console.error('info error', error);
+      });
+      unsubscribes.push(unsubscribeInfo);
+
       setIsInitializing(false);
     };
 
@@ -86,6 +112,8 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
         setTables([]);
         setCategories([]);
         setProducts([]);
+        setAppUsers([]);
+        setRestaurantInfo(null);
         setIsInitializing(true);
       }
     });
@@ -190,12 +218,47 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const addAppUser = async (user: Omit<AppUser, 'id'>) => {
+    try {
+      const newRef = doc(collection(db, 'appusers'));
+      await setDoc(newRef, user);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.CREATE, 'appusers');
+    }
+  };
+
+  const updateAppUser = async (id: string, user: Partial<AppUser>) => {
+    try {
+      await updateDoc(doc(db, 'appusers', id), user);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, 'appusers');
+    }
+  };
+
+  const deleteAppUser = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'appusers', id));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, 'appusers');
+    }
+  };
+
+  const updateRestaurantInfo = async (info: RestaurantInfo) => {
+    try {
+      await setDoc(doc(db, 'settings', 'restaurantInfo'), info, { merge: true });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.UPDATE, 'settings');
+    }
+  };
+
   return (
     <RestaurantContext.Provider value={{ 
-      sections, tables, categories, products, 
+      sections, tables, categories, products, appUsers, restaurantInfo,
       addSection, deleteSection, addTable, deleteTable,
       addCategory, updateCategory, deleteCategory,
-      addProduct, updateProduct, deleteProduct
+      addProduct, updateProduct, deleteProduct,
+      addAppUser, updateAppUser, deleteAppUser,
+      updateRestaurantInfo
     }}>
       {children}
     </RestaurantContext.Provider>
