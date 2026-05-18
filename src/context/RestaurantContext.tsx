@@ -195,7 +195,9 @@ export const RestaurantProvider = ({ children }: { children: ReactNode }) => {
         description: product.description || '', 
         price: product.price, 
         image: product.image, 
-        categoryId: product.categoryId 
+        categoryId: product.categoryId,
+        hasStock: product.hasStock || false,
+        stockCount: product.stockCount || 0
       });
     } catch (e) {
       handleFirestoreError(e, OperationType.CREATE, 'products');
