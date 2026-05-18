@@ -187,6 +187,29 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
          }
          break;
       }
+      case 'CHECKOUT_ORDER': {
+         if (!currentState.activeTableId) return;
+         const tableId = currentState.activeTableId;
+         const tableOrderToCheckout = currentState.orders[tableId];
+         if (!tableOrderToCheckout || !tableOrderToCheckout.items.length) return;
+
+         try {
+           const saleData = {
+             tableId,
+             items: JSON.stringify(tableOrderToCheckout.items),
+             totalAmount: tableOrderToCheckout.totalAmount,
+             paymentMethod: action.payload.paymentMethod,
+             createdAt: Date.now()
+           };
+           const newSaleRef = doc(collection(db, 'sales'));
+           await setDoc(newSaleRef, saleData);
+
+           await deleteDoc(doc(db, 'orders', tableId));
+         } catch(e) {
+           handleFirestoreError(e, OperationType.WRITE, 'sales');
+         }
+         break;
+      }
     }
   }, []);
 

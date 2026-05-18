@@ -160,7 +160,7 @@ export const CartSidebar: React.FC<{ onClose?: () => void, tableName?: string, o
                       setTimeout(() => {
                         setIsPaymentModalOpen(false);
                         setPaymentSuccess(false);
-                        dispatch({ type: 'CLEAR_ORDER' });
+                        dispatch({ type: 'CHECKOUT_ORDER', payload: { paymentMethod: 'nakit' } });
                         if (onSend) onSend();
                       }, 1500);
                     }}
@@ -180,7 +180,7 @@ export const CartSidebar: React.FC<{ onClose?: () => void, tableName?: string, o
                       setTimeout(() => {
                         setIsPaymentModalOpen(false);
                         setPaymentSuccess(false);
-                        dispatch({ type: 'CLEAR_ORDER' });
+                        dispatch({ type: 'CHECKOUT_ORDER', payload: { paymentMethod: 'kredi_karti' } });
                         if (onSend) onSend();
                       }, 1500);
                     }}
