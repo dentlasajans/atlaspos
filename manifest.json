@@ -2,7 +2,7 @@
   "name": "AtlasPOS",
   "short_name": "AtlasPOS",
   "description": "AtlasPOS Point of Sale and QR Menu",
-  "start_url": "/",
+  "start_url": "/atlaspos/",
   "display": "standalone",
   "background_color": "#020617",
   "theme_color": "#0f172a",
