@@ -37,6 +37,7 @@ export interface RestaurantInfo {
   name: string;
   description: string;
   logo: string;
+  coverImage?: string;
   instagram: string;
   twitter: string;
   facebook: string;

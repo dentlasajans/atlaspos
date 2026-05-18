@@ -81,7 +81,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ selectedSection, onSelec
                      return <p className="text-slate-500">Bu bölümde henüz masa yok.</p>;
                    }
                    return (
-                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-3 lg:gap-4">
+                     <div className="grid grid-cols-2 sm:grid-cols-[repeat(auto-fill,minmax(140px,1fr))] md:grid-cols-[repeat(auto-fill,minmax(160px,1fr))] lg:grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3 lg:gap-4">
                        {sectionTables.map(table => {
                           const tableOrder = globalState.orders[table.id];
                           const hasOrder = tableOrder && tableOrder.items.length > 0;
@@ -91,23 +91,23 @@ export const TablesView: React.FC<TablesViewProps> = ({ selectedSection, onSelec
                             <button
                                 key={table.id}
                                 onClick={() => onSelectTable(table)}
-                                className={`group border p-4 lg:p-6 rounded-2xl transition-all text-center flex flex-col items-center gap-2 active:scale-95 ${
+                                className={`group border p-4 lg:p-6 rounded-2xl transition-all text-center flex flex-col items-center justify-center gap-2 active:scale-95 aspect-square relative ${
                                   hasOrder 
                                     ? 'bg-orange-500/10 border-orange-500/30 hover:border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.1)]' 
                                     : 'bg-slate-900 border-white/10 hover:border-white/20'
                                 }`}
                             >
-                                <div className={`w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold transition-transform group-hover:scale-110 ${
+                                <div className={`w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center text-lg lg:text-xl font-bold transition-transform group-hover:scale-110 ${
                                   hasOrder ? 'bg-orange-500 text-slate-900' : 'bg-slate-800 text-slate-300'
                                 }`}>
                                    {table.name.replace('Masa', '').replace('masa', '').trim()}
                                 </div>
-                                <div className="flex flex-col items-center">
+                                <div className="flex flex-col items-center mt-2">
                                   <span className={`font-medium text-sm lg:text-base ${hasOrder ? 'text-orange-400' : 'text-slate-200'}`}>
                                     {table.name}
                                   </span>
                                   {hasOrder && (
-                                    <span className="text-xs font-mono font-bold mt-1 text-slate-300 bg-slate-950/50 px-2 py-0.5 rounded-md border border-white/5">
+                                    <span className="text-xs font-mono font-bold mt-1 text-slate-300 bg-slate-950/50 px-2 py-0.5 rounded-md border border-white/5 absolute bottom-4">
                                       {formatCurrency(total)}
                                     </span>
                                   )}

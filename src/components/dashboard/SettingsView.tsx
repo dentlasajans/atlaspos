@@ -33,6 +33,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
       name: restaurantInfo?.name || '',
       description: restaurantInfo?.description || '',
       logo: restaurantInfo?.logo || '',
+      coverImage: restaurantInfo?.coverImage || '',
       instagram: restaurantInfo?.instagram || '',
       twitter: restaurantInfo?.twitter || '',
       facebook: restaurantInfo?.facebook || '',
@@ -134,16 +135,21 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean, isLogo: boolean = false) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, isEdit: boolean, type: 'product' | 'logo' | 'cover' = 'product') => {
       const file = e.target.files?.[0];
       if (!file) return;
       const url = await uploadImageToCloudinary(file);
       if (url) {
-          if (isLogo) {
+          if (type === 'logo') {
                if (infoState.logo) {
                    deleteCloudinaryImage(infoState.logo);
                }
                setInfoState(prev => ({ ...prev, logo: url }));
+          } else if (type === 'cover') {
+               if (infoState.coverImage) {
+                   deleteCloudinaryImage(infoState.coverImage);
+               }
+               setInfoState(prev => ({ ...prev, coverImage: url }));
           } else if (isEdit && editingProduct) {
               // Delete immediately if there is a preview image that doesn't match the original
               const originalProduct = products.find(p => p.id === editingProduct.id);
@@ -174,6 +180,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
         deleteCloudinaryImage(infoState.logo);
     }
     setInfoState(p => ({...p, logo: ''}));
+  };
+
+  const clearCoverImage = () => {
+    if (infoState.coverImage) {
+        deleteCloudinaryImage(infoState.coverImage);
+    }
+    setInfoState(p => ({...p, coverImage: ''}));
   };
 
   const handleCancelEdit = () => {
@@ -639,7 +652,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
                         <input type="text" value={infoState.name} onChange={e => setInfoState(p => ({...p, name: e.target.value}))} className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500" />
                      </div>
                      <div>
-                        <label className="block text-sm text-slate-400 mb-1">İşletme Logosu / Resmi</label>
+                        <label className="block text-sm text-slate-400 mb-1">QR Menü Arkaplan Resmi</label>
+                        <div className="flex items-center gap-4">
+                           {infoState.coverImage ? (
+                               <div className="relative">
+                                   <img src={infoState.coverImage} alt="Cover" className="w-12 h-12 rounded bg-slate-800 object-cover" />
+                                   <button onClick={clearCoverImage} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">x</button>
+                               </div>
+                           ) : (
+                               <div className="w-12 h-12 rounded bg-slate-800 border border-dashed border-white/20 flex flex-col items-center justify-center text-xs text-slate-500">...</div>
+                           )}
+                           <label className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 cursor-pointer hover:bg-white/10 transition-colors">
+                               <span className="text-sm">{isUploading ? 'Yükleniyor...' : 'Arkaplan Yükle'}</span>
+                               <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, false, 'cover')} disabled={isUploading} />
+                           </label>
+                        </div>
+                     </div>
+                     <div className="md:col-span-2">
+                        <label className="block text-sm text-slate-400 mb-1">İşletme Logosu</label>
                         <div className="flex items-center gap-4">
                            {infoState.logo ? (
                                <div className="relative">
@@ -650,8 +680,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
                                <div className="w-12 h-12 rounded bg-slate-800 border border-dashed border-white/20 flex flex-col items-center justify-center text-xs text-slate-500">...</div>
                            )}
                            <label className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 cursor-pointer hover:bg-white/10 transition-colors">
-                               <span className="text-sm">{isUploading ? 'Yükleniyor...' : 'Resim Yükle'}</span>
-                               <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, false, true)} disabled={isUploading} />
+                               <span className="text-sm">{isUploading ? 'Yükleniyor...' : 'Logo Yükle'}</span>
+                               <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, false, 'logo')} disabled={isUploading} />
                            </label>
                         </div>
                      </div>

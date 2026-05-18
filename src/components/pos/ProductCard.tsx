@@ -16,10 +16,10 @@ export const ProductCard = React.memo(({ product, onAdd }: ProductCardProps) => 
           onAdd(product);
         }
       }}
-      className={`group bg-white/5 border border-white/10 p-3 md:p-5 rounded-2xl md:rounded-3xl hover:bg-white/10 transition-all relative overflow-hidden flex flex-col ${
+      className={`group bg-white/5 border border-white/10 p-3 md:p-5 rounded-2xl md:rounded-3xl transition-all relative overflow-hidden flex flex-col ${
         product.hasStock && (product.stockCount || 0) <= 0 
-        ? 'opacity-50 cursor-not-allowed grayscale' 
-        : 'hover:-translate-y-1 active:scale-95 cursor-pointer'
+        ? 'opacity-70 cursor-not-allowed bg-red-950/20' 
+        : 'hover:bg-white/10 hover:-translate-y-1 active:scale-95 cursor-pointer'
       }`}
     >
       <div className="absolute -top-4 -right-4 w-16 h-16 bg-orange-500/10 rounded-full blur-2xl pointer-events-none"></div>

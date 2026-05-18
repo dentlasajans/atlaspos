@@ -43,48 +43,67 @@ export const QRMenuView: React.FC = () => {
       ? getOptimizedImage(restaurantInfo.logo, 200, 200, "fit") 
       : getOptimizedImage("https://res.cloudinary.com/dejx0brol/image/upload/v1778572429/Blue_and_Black_Minimalist_Brand_Logo_20260120_225431_0000_s2isk5.png", 200, 200, "fit");
 
+  const coverSrc = restaurantInfo?.coverImage
+      ? getOptimizedImage(restaurantInfo.coverImage, 800, 400, "fill")
+      : null;
+
   return (
-    <div className="flex bg-slate-950 font-sans text-slate-100 flex-col min-h-[100dvh] w-full relative">
-      <header className="p-6 sticky top-0 z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
-        <div className="flex flex-col items-center mb-6">
-          <motion.img 
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 200, damping: 15 }}
-            src={logoSrc} 
-            alt={restaurantInfo?.name || "Logo"} 
-            className="w-20 h-20 object-cover mb-4 rounded-[2rem] shadow-[0_0_30px_rgba(249,115,22,0.2)] bg-gradient-to-tr from-slate-800 to-slate-900 border border-white/10" 
-            referrerPolicy="no-referrer"
-          />
-          <motion.h1 
-             initial={{ y: 10, opacity: 0 }}
-             animate={{ y: 0, opacity: 1 }}
-             transition={{ delay: 0.1 }}
-             className="text-2xl font-bold tracking-widest bg-gradient-to-r from-orange-400 to-rose-400 bg-clip-text text-transparent uppercase"
-          >
-              {restaurantInfo?.name || "Menü"}
-          </motion.h1>
-          {restaurantInfo?.description && (
-             <motion.p 
-                initial={{ y: 10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-                className="text-slate-400 text-sm mt-3 text-center max-w-sm"
-             >
-                {restaurantInfo.description}
-             </motion.p>
-          )}
-        </div>
-        
-        <div className="relative max-w-md mx-auto">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500 pointer-events-none" />
-          <input 
-            type="text" 
-            placeholder="Ne yemek istersiniz?" 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-base focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all placeholder:text-slate-500"
-          />
+    <div className="flex bg-slate-950 font-sans text-slate-100 flex-col min-h-[100dvh] w-full relative overflow-hidden">
+      {/* Animated Background */}
+      <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-orange-500/30 blur-[120px] animate-pulse" style={{ animationDuration: '8s' }} />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-rose-500/20 blur-[100px] animate-pulse" style={{ animationDuration: '10s' }} />
+      </div>
+
+      <header className="relative z-50 bg-slate-950/80 backdrop-blur-xl border-b border-white/5">
+        {coverSrc && (
+           <div className="absolute inset-0 z-[-1] overflow-hidden">
+              <div className="absolute inset-0 bg-slate-950/70 z-10 backdrop-blur-sm" />
+              <img src={coverSrc} alt="Cover" className="w-full h-full object-cover object-center" />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-950 z-20" />
+           </div>
+        )}
+        <div className="p-6">
+            <div className="flex flex-col items-center mb-6 pt-4">
+              <motion.img 
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                src={logoSrc} 
+                alt={restaurantInfo?.name || "Logo"} 
+                className="w-24 h-24 object-cover mb-4 rounded-3xl shadow-2xl bg-gradient-to-tr from-slate-800 to-slate-900 border-2 border-white/10" 
+                referrerPolicy="no-referrer"
+              />
+              <motion.h1 
+                 initial={{ y: 10, opacity: 0 }}
+                 animate={{ y: 0, opacity: 1 }}
+                 transition={{ delay: 0.1 }}
+                 className="text-3xl font-bold tracking-widest bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent uppercase text-center drop-shadow-lg"
+              >
+                  {restaurantInfo?.name || "Menü"}
+              </motion.h1>
+              {restaurantInfo?.description && (
+                 <motion.p 
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                    className="text-slate-300 text-sm mt-3 text-center max-w-sm drop-shadow-md"
+                 >
+                    {restaurantInfo.description}
+                 </motion.p>
+              )}
+            </div>
+            
+            <div className="relative max-w-md mx-auto pt-2">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none mt-1" />
+              <input 
+                type="text" 
+                placeholder="Ne yemek istersiniz?" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl py-3.5 pl-12 pr-4 text-base focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-all placeholder:text-slate-400 shadow-lg"
+              />
+            </div>
         </div>
       </header>
 
@@ -108,8 +127,8 @@ export const QRMenuView: React.FC = () => {
                         exit={{ opacity: 0, scale: 0.9 }}
                         transition={{ delay: index * 0.05 }}
                         key={product.id} 
-                        className={`bg-white/5 hover:bg-white/10 transition-colors border border-white/10 p-4 rounded-3xl flex gap-4 overflow-hidden shadow-lg backdrop-blur-sm relative ${
-                           product.hasStock && (product.stockCount || 0) <= 0 ? 'opacity-60 grayscale' : ''
+                        className={`transition-colors border border-white/10 p-4 rounded-3xl flex gap-4 overflow-hidden shadow-lg backdrop-blur-sm relative ${
+                           product.hasStock && (product.stockCount || 0) <= 0 ? 'opacity-70 bg-red-950/20' : 'bg-white/5 hover:bg-white/10'
                         }`}
                     >
                         {product.hasStock && (
