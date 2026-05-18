@@ -28,7 +28,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
   const [newProductState, setNewProductState] = useState<Partial<Product>>({ name: '', price: 0, description: '', image: '', categoryId: '', hasStock: false, stockCount: 0 });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const [newUser, setNewUser] = useState({ username: '', password: '' });
+  const [newUser, setNewUser] = useState({ name: '', pin: '', role: 'waiter' });
   const [infoState, setInfoState] = useState({
       name: restaurantInfo?.name || '',
       description: restaurantInfo?.description || '',
@@ -268,9 +268,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
   };
 
   const handleAddUser = () => {
-      if (newUser.username && newUser.password) {
-          addAppUser({ username: newUser.username, password: newUser.password });
-          setNewUser({ username: '', password: '' });
+      if (newUser.name && newUser.pin && newUser.pin.length === 4) {
+          addAppUser({ name: newUser.name, pin: newUser.pin, role: newUser.role as any });
+          setNewUser({ name: '', pin: '', role: 'waiter' });
+      } else {
+          alert("Lütfen tüm alanları doldurun ve PIN'in 4 haneli olduğundan emin olun.");
       }
   };
 
@@ -618,27 +620,41 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
             {activeTab === 'users' && (
                <div className="space-y-6">
                   <div className="bg-white/5 border border-white/10 p-5 lg:p-6 rounded-3xl">
-                     <h2 className="text-xl font-semibold mb-4 text-slate-200">Kullanıcı Ekle</h2>
-                     <div className="flex gap-3">
-                        <input type="text" placeholder="Kullanıcı Adı" value={newUser.username} onChange={e => setNewUser(p => ({...p, username: e.target.value}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500" />
-                        <input type="text" placeholder="Şifre" value={newUser.password} onChange={e => setNewUser(p => ({...p, password: e.target.value}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500" />
-                        <button onClick={handleAddUser} disabled={!newUser.username || !newUser.password} className="bg-emerald-500 text-slate-950 px-6 py-2 rounded-xl font-semibold disabled:opacity-50 active:scale-95">Ekle</button>
+                     <h2 className="text-xl font-semibold mb-4 text-slate-200">Personel Ekle</h2>
+                     <div className="flex flex-col md:flex-row gap-3">
+                        <input type="text" placeholder="Ad Soyad" value={newUser.name} onChange={e => setNewUser(p => ({...p, name: e.target.value}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500 w-full md:w-1/3" />
+                        <input type="text" placeholder="4 Haneli PIN" maxLength={4} value={newUser.pin} onChange={e => setNewUser(p => ({...p, pin: e.target.value.replace(/[^0-9]/g, '')}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500 w-full md:w-1/4" />
+                        <select value={newUser.role} onChange={e => setNewUser(p => ({...p, role: e.target.value}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500 w-full md:w-1/4">
+                            <option value="waiter">Garson</option>
+                            <option value="cashier">Kasiyer</option>
+                            <option value="admin">Yönetici</option>
+                        </select>
+                        <button onClick={handleAddUser} disabled={!newUser.name || newUser.pin.length !== 4} className="bg-emerald-500 text-slate-950 px-6 py-2 rounded-xl font-semibold disabled:opacity-50 active:scale-95 w-full md:w-auto mt-2 md:mt-0">Ekle</button>
                      </div>
                   </div>
 
                   <div className="bg-white/5 border border-white/10 p-5 lg:p-6 rounded-3xl">
-                     <h2 className="text-xl font-semibold mb-4 text-slate-200">Mevcut Kullanıcılar</h2>
+                     <h2 className="text-xl font-semibold mb-4 text-slate-200">Mevcut Personeller</h2>
                      <div className="space-y-2">
                         {appUsers.map(user => (
                            <div key={user.id} className="flex justify-between items-center bg-slate-900 border border-white/10 p-4 rounded-xl">
                               <div>
-                                 <div className="font-semibold">{user.username}</div>
-                                 <div className="text-sm text-slate-400">Şifre: {user.password}</div>
+                                 <div className="font-semibold flex items-center gap-2">
+                                     {user.name} 
+                                     <span className={`text-xs px-2 py-0.5 rounded-md ${
+                                         user.role === 'admin' ? 'bg-orange-500/20 text-orange-400' :
+                                         user.role === 'waiter' ? 'bg-blue-500/20 text-blue-400' :
+                                         'bg-purple-500/20 text-purple-400'
+                                     }`}>
+                                         {user.role === 'admin' ? 'Yönetici' : user.role === 'waiter' ? 'Garson' : 'Kasiyer'}
+                                     </span>
+                                 </div>
+                                 <div className="text-sm text-slate-400 mt-1">PIN: {user.pin}</div>
                               </div>
                               <button onClick={() => deleteAppUser(user.id)} className="text-red-400 hover:text-red-300 p-2 bg-red-400/10 rounded-lg"><Trash2 className="w-5 h-5"/></button>
                            </div>
                         ))}
-                        {appUsers.length === 0 && <div className="text-slate-500">Hiç kullanıcı yok.</div>}
+                        {appUsers.length === 0 && <div className="text-slate-500">Hiç personel eklenmemiş.</div>}
                      </div>
                   </div>
                </div>

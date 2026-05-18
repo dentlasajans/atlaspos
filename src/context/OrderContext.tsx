@@ -187,6 +187,57 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
          }
          break;
       }
+      case 'PARTIAL_CHECKOUT': {
+         if (!currentState.activeTableId) return;
+         const tableId = currentState.activeTableId;
+         const tableOrderToCheckout = currentState.orders[tableId];
+         if (!tableOrderToCheckout || !tableOrderToCheckout.items.length) return;
+
+         try {
+           const paidAmount = action.payload.amount;
+           const remainingTotal = tableOrderToCheckout.totalAmount - paidAmount;
+
+           const saleData = {
+             tableId,
+             items: JSON.stringify([{
+                 id: 'partial_payment',
+                 name: 'Kısmi Ödeme',
+                 price: paidAmount,
+                 quantity: 1,
+                 categoryId: 'payment'
+             }]),
+             totalAmount: paidAmount,
+             paymentMethod: action.payload.paymentMethod,
+             createdAt: Date.now()
+           };
+           const newSaleRef = doc(collection(db, 'sales'));
+           await setDoc(newSaleRef, saleData);
+
+           if (remainingTotal <= 0.01) {
+             await deleteDoc(doc(db, 'orders', tableId));
+           } else {
+             const newItems = [...tableOrderToCheckout.items, {
+                 id: 'partial_' + Date.now(),
+                 name: `Kısmi Ödeme (${action.payload.paymentMethod === 'nakit' ? 'Nakit' : 'Kredi Kartı'})`,
+                 price: -paidAmount,
+                 quantity: 1,
+                 categoryId: 'payment',
+                 description: 'Ödenen tutar',
+                 image: ''
+             }];
+             const newTotalAmount = calculateTotal(newItems);
+             await setDoc(doc(db, 'orders', tableId), {
+                 tableId,
+                 items: JSON.stringify(newItems),
+                 totalAmount: newTotalAmount,
+                 updatedAt: Date.now()
+             });
+           }
+         } catch(e) {
+           handleFirestoreError(e, OperationType.WRITE, 'sales');
+         }
+         break;
+      }
       case 'CHECKOUT_ORDER': {
          if (!currentState.activeTableId) return;
          const tableId = currentState.activeTableId;

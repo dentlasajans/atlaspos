@@ -1,13 +1,32 @@
 import React, { useState } from 'react';
 import { Lock } from 'lucide-react';
+import { useRestaurant } from '../../context/RestaurantContext';
 
 interface LoginViewProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (userRole: string, userName: string) => void;
 }
 
 export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
+  const { appUsers } = useRestaurant();
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
+
+  const checkPin = (currentPin: string) => {
+    // Check main admin fallback pin
+    if (currentPin === '1234') {
+        onLoginSuccess('admin', 'Admin');
+        return;
+    }
+
+    // Check staff pins
+    const staff = appUsers.find(u => u.pin === currentPin);
+    if (staff) {
+        onLoginSuccess(staff.role || 'waiter', staff.name);
+    } else {
+        setError(true);
+        setTimeout(() => setPin(''), 1000);
+    }
+  };
 
   const handlePinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, ''); // only digits
@@ -17,12 +36,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
       
       // Auto login when 4 digits are entered
       if (value.length === 4) {
-        if (value === '1234') {
-          onLoginSuccess();
-        } else {
-          setError(true);
-          setTimeout(() => setPin(''), 1000);
-        }
+        checkPin(value);
       }
     }
   };
@@ -34,12 +48,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
       setError(false);
       
       if (newPin.length === 4) {
-        if (newPin === '1234') {
-          onLoginSuccess();
-        } else {
-          setError(true);
-          setTimeout(() => setPin(''), 1000);
-        }
+        checkPin(newPin);
       }
     }
   };

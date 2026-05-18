@@ -7,6 +7,7 @@ export const CartSidebar: React.FC<{ onClose?: () => void, tableName?: string, o
   const { state, dispatch } = useOrder();
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [customPayAmountStr, setCustomPayAmountStr] = useState<string>('');
 
   const handleUpdateQuantity = (id: string, newQuantity: number) => {
     if (newQuantity < 1) {
@@ -57,21 +58,28 @@ export const CartSidebar: React.FC<{ onClose?: () => void, tableName?: string, o
                 </div>
                 
                 <div className="flex items-center justify-between mt-2">
-                  <div className="flex items-center gap-4 bg-slate-900/50 p-1.5 rounded-xl border border-white/5">
-                    <button
-                      onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                      className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-slate-300 hover:text-white transition-colors active:scale-95"
-                    >
-                      {item.quantity === 1 ? <Trash2 className="w-5 h-5 text-red-400" /> : <Minus className="w-5 h-5" />}
-                    </button>
-                    <span className="w-6 text-center font-bold text-lg">{item.quantity}</span>
-                    <button
-                      onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                      className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-slate-300 hover:text-white transition-colors active:scale-95"
-                    >
-                      <Plus className="w-5 h-5" />
-                    </button>
-                  </div>
+                  {!item.id.toString().startsWith('partial_') && (
+                    <div className="flex items-center gap-4 bg-slate-900/50 p-1.5 rounded-xl border border-white/5">
+                      <button
+                        onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                        className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-slate-300 hover:text-white transition-colors active:scale-95"
+                      >
+                        {item.quantity === 1 ? <Trash2 className="w-5 h-5 text-red-400" /> : <Minus className="w-5 h-5" />}
+                      </button>
+                      <span className="w-6 text-center font-bold text-lg">{item.quantity}</span>
+                      <button
+                        onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                        className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-slate-300 hover:text-white transition-colors active:scale-95"
+                      >
+                        <Plus className="w-5 h-5" />
+                      </button>
+                    </div>
+                  )}
+                  {item.id.toString().startsWith('partial_') && (
+                      <span className="text-xs text-emerald-400 bg-emerald-400/10 px-3 py-2 rounded-lg font-medium">
+                          Tahsil Edildi
+                      </span>
+                  )}
                 </div>
               </div>
             ))
@@ -142,25 +150,55 @@ export const CartSidebar: React.FC<{ onClose?: () => void, tableName?: string, o
             ) : (
               <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-bold">Ödeme Yöntemi Seçin</h3>
+                  <h3 className="text-xl font-bold">Ödeme Al</h3>
                   <button onClick={() => setIsPaymentModalOpen(false)} className="p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
                 
-                <div className="flex flex-col items-center justify-center mb-6 bg-slate-950 p-6 rounded-2xl border border-white/5">
-                  <span className="text-sm text-slate-400 mb-1">Ödenecek Tutar</span>
+                <div className="flex flex-col items-center justify-center mb-4 bg-slate-950 p-6 rounded-2xl border border-white/5">
+                  <span className="text-sm text-slate-400 mb-1">Kalan Toplam Tutar</span>
                   <span className="text-3xl font-mono text-orange-400 font-bold">{formatCurrency(finalTotal)}</span>
+                </div>
+
+                <div className="mb-6 space-y-3">
+                  <div className="flex bg-slate-800 p-1 rounded-xl">
+                      <button onClick={() => setCustomPayAmountStr((finalTotal / 2).toFixed(2))} className="flex-1 py-1.5 text-xs font-medium text-slate-300 hover:text-white rounded-lg hover:bg-white/5 transition-colors">1/2</button>
+                      <button onClick={() => setCustomPayAmountStr((finalTotal / 3).toFixed(2))} className="flex-1 py-1.5 text-xs font-medium text-slate-300 hover:text-white rounded-lg hover:bg-white/5 transition-colors">1/3</button>
+                      <button onClick={() => setCustomPayAmountStr((finalTotal / 4).toFixed(2))} className="flex-1 py-1.5 text-xs font-medium text-slate-300 hover:text-white rounded-lg hover:bg-white/5 transition-colors">1/4</button>
+                      <button onClick={() => setCustomPayAmountStr('')} className="flex-1 py-1.5 text-xs font-medium text-slate-300 hover:text-white rounded-lg hover:bg-white/5 transition-colors text-orange-400">Tümü</button>
+                  </div>
+                  <div className="relative">
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 font-mono">₺</span>
+                      <input 
+                        type="number"
+                        placeholder="Ödenecek Tutarı Girin..."
+                        value={customPayAmountStr}
+                        onChange={(e) => setCustomPayAmountStr(e.target.value)}
+                        className="w-full bg-slate-900 border border-white/10 rounded-xl pl-8 pr-4 py-3 font-mono text-white focus:outline-none focus:border-purple-500 transition-colors"
+                      />
+                  </div>
                 </div>
                 
                 <div className="space-y-3">
                   <button
                     onClick={() => {
+                      const amountToPay = customPayAmountStr ? parseFloat(customPayAmountStr) : finalTotal;
+                      if (isNaN(amountToPay) || amountToPay <= 0) return;
+                      
                       setPaymentSuccess(true);
                       setTimeout(() => {
                         setIsPaymentModalOpen(false);
                         setPaymentSuccess(false);
-                        dispatch({ type: 'CHECKOUT_ORDER', payload: { paymentMethod: 'nakit' } });
+                        
+                        // Handle partial or full
+                        // Avoid float precision issues
+                        if (Math.abs(amountToPay - finalTotal) < 0.01) {
+                            dispatch({ type: 'CHECKOUT_ORDER', payload: { paymentMethod: 'nakit' } });
+                        } else {
+                            dispatch({ type: 'PARTIAL_CHECKOUT', payload: { amount: amountToPay, paymentMethod: 'nakit' } });
+                        }
+                        
                         if (onSend) onSend();
                       }, 1500);
                     }}
@@ -170,17 +208,26 @@ export const CartSidebar: React.FC<{ onClose?: () => void, tableName?: string, o
                       <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
                         <Banknote className="w-5 h-5 text-emerald-400" />
                       </div>
-                      <span className="font-semibold text-emerald-400">Nakit</span>
+                      <span className="font-semibold text-emerald-400">Nakit Tahsil Et</span>
                     </div>
                   </button>
                   
                   <button
                     onClick={() => {
+                      const amountToPay = customPayAmountStr ? parseFloat(customPayAmountStr) : finalTotal;
+                      if (isNaN(amountToPay) || amountToPay <= 0) return;
+
                       setPaymentSuccess(true);
                       setTimeout(() => {
                         setIsPaymentModalOpen(false);
                         setPaymentSuccess(false);
-                        dispatch({ type: 'CHECKOUT_ORDER', payload: { paymentMethod: 'kredi_karti' } });
+                        
+                        if (Math.abs(amountToPay - finalTotal) < 0.01) {
+                            dispatch({ type: 'CHECKOUT_ORDER', payload: { paymentMethod: 'kredi_karti' } });
+                        } else {
+                            dispatch({ type: 'PARTIAL_CHECKOUT', payload: { amount: amountToPay, paymentMethod: 'kredi_karti' } });
+                        }
+                        
                         if (onSend) onSend();
                       }, 1500);
                     }}
@@ -190,7 +237,7 @@ export const CartSidebar: React.FC<{ onClose?: () => void, tableName?: string, o
                       <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
                         <CreditCard className="w-5 h-5 text-blue-400" />
                       </div>
-                      <span className="font-semibold text-blue-400">Kredi Kartı</span>
+                      <span className="font-semibold text-blue-400">Kredi Kartı Tahsil Et</span>
                     </div>
                   </button>
                 </div>

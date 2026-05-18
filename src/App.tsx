@@ -13,16 +13,92 @@ import { auth } from './lib/firebase';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
 function MainApp() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    const authState = localStorage.getItem('isAuthenticated');
+    const lastActivity = localStorage.getItem('lastActivity');
+    const userRole = localStorage.getItem('userRole');
+    
+    if (authState === 'true' && lastActivity && userRole) {
+      const now = Date.now();
+      const last = parseInt(lastActivity, 10);
+      const TEN_MINUTES = 10 * 60 * 1000;
+      
+      if (now - last < TEN_MINUTES) {
+        // Still valid, update last activity
+        localStorage.setItem('lastActivity', now.toString());
+        return true;
+      } else {
+        localStorage.removeItem('isAuthenticated');
+        localStorage.removeItem('lastActivity');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userName');
+      }
+    }
+    return false;
+  });
+
   const [currentView, setCurrentView] = useState<'selection' | 'pos' | 'kasa' | 'ayarlar'>('selection');
 
-  const handleLoginSuccess = () => {
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    let lastUpdate = 0;
+
+    const handleActivity = () => {
+      if (isAuthenticated) {
+        const now = Date.now();
+        // Throttle localStorage updates to every 1 minute max
+        if (now - lastUpdate > 60000) {
+          localStorage.setItem('lastActivity', now.toString());
+          lastUpdate = now;
+        }
+        
+        // Clear existing timeout
+        if (timeoutId) clearTimeout(timeoutId);
+        
+        // Set new timeout for 10 minutes (600,000 ms)
+        timeoutId = setTimeout(() => {
+          handleLogout();
+        }, 10 * 60 * 1000);
+      }
+    };
+
+    if (isAuthenticated) {
+      // Set initial timeout
+      handleActivity();
+      
+      // Add event listeners for activity tracking
+      window.addEventListener('mousemove', handleActivity);
+      window.addEventListener('keydown', handleActivity);
+      window.addEventListener('click', handleActivity);
+      window.addEventListener('scroll', handleActivity);
+      window.addEventListener('touchstart', handleActivity);
+    }
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      window.removeEventListener('mousemove', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      window.removeEventListener('click', handleActivity);
+      window.removeEventListener('scroll', handleActivity);
+      window.removeEventListener('touchstart', handleActivity);
+    };
+  }, [isAuthenticated]);
+
+  const handleLoginSuccess = (userRole: string, userName: string) => {
     setIsAuthenticated(true);
+    localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('lastActivity', Date.now().toString());
+    localStorage.setItem('userRole', userRole);
+    localStorage.setItem('userName', userName);
     setCurrentView('selection');
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('lastActivity');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userName');
     setCurrentView('selection');
   };
 
