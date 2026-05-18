@@ -54,7 +54,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
 
   const uploadImageToCloudinary = async (file: File) => {
     // We have the keys, but need the cloud name
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || localStorage.getItem('cloudinary_cloud_name') || prompt("Lütfen Cloudinary Cloud Name (Hesap Adı) girin:");
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || localStorage.getItem('cloudinary_cloud_name') || "dejx0brol";
     
     if (!cloudName) {
       alert("Cloud Name eksik! Yükleme yapılamıyor.");
@@ -110,7 +110,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
     const lastDot = publicIdWithExt.lastIndexOf(".");
     const publicIdFinal = lastDot !== -1 ? publicIdWithExt.substring(0, lastDot) : publicIdWithExt;
 
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || localStorage.getItem('cloudinary_cloud_name');
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || localStorage.getItem('cloudinary_cloud_name') || "dejx0brol";
     if (!cloudName) return;
 
     const apiKey = "943986857686586";
