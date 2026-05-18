@@ -4,6 +4,7 @@ import { db, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { formatCurrency } from '../../lib/utils';
 import { OrderItem } from '../../types';
 import { ArrowLeft, Clock, CalendarDays, Calendar as CalendarMonth, Wallet, CreditCard, Banknote, TrendingUp } from 'lucide-react';
+import { useRestaurant } from '../../context/RestaurantContext';
 
 interface Sale {
   id: string;
@@ -19,6 +20,7 @@ interface CashRegisterViewProps {
 }
 
 export const CashRegisterView: React.FC<CashRegisterViewProps> = ({ onBack }) => {
+  const { tables } = useRestaurant();
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [reportPeriod, setReportPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
@@ -217,7 +219,7 @@ export const CashRegisterView: React.FC<CashRegisterViewProps> = ({ onBack }) =>
                    <div key={sale.id} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex items-center justify-between gap-2">
                        <div className="flex flex-col">
                           <span className="font-semibold text-slate-200">
-                             Masa {sale.tableId} 
+                             {tables.find(t => t.id === sale.tableId)?.name || `Masa ${sale.tableId}`}
                              <span className="text-xs text-slate-500 ml-2 font-normal">
                                {new Date(sale.createdAt).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
                              </span>

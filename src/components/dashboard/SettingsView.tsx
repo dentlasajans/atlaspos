@@ -37,7 +37,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
       instagram: restaurantInfo?.instagram || '',
       twitter: restaurantInfo?.twitter || '',
       facebook: restaurantInfo?.facebook || '',
-      tiktok: restaurantInfo?.tiktok || ''
+      tiktok: restaurantInfo?.tiktok || '',
+      wifiSsid: restaurantInfo?.wifiSsid || '',
+      wifiPassword: restaurantInfo?.wifiPassword || ''
   });
 
   const [isUploading, setIsUploading] = useState(false);
@@ -704,6 +706,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
                      <div>
                         <label className="block text-sm text-slate-400 mb-1">TikTok Linki (Örn: https://tiktok.com/@atlaspos)</label>
                         <input type="text" value={infoState.tiktok} onChange={e => setInfoState(p => ({...p, tiktok: e.target.value}))} className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500" />
+                     </div>
+                     <div className="md:col-span-2 pt-4 border-t border-white/5">
+                        <h4 className="text-lg font-medium text-slate-200 mb-4">Müşteri Wi-Fi Ayarları</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div>
+                              <label className="block text-sm text-slate-400 mb-1">Wi-Fi Adı (SSID)</label>
+                              <input type="text" value={infoState.wifiSsid || ''} onChange={e => setInfoState(p => ({...p, wifiSsid: e.target.value}))} className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500" placeholder="Misafir Ağı" />
+                           </div>
+                           <div>
+                              <label className="block text-sm text-slate-400 mb-1">Wi-Fi Şifresi</label>
+                              <input type="text" value={infoState.wifiPassword || ''} onChange={e => setInfoState(p => ({...p, wifiPassword: e.target.value}))} className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500" placeholder="Şifre (Opsiyonel)" />
+                           </div>
+                        </div>
                      </div>
                   </div>
                   

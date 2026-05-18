@@ -42,4 +42,6 @@ export interface RestaurantInfo {
   twitter: string;
   facebook: string;
   tiktok: string;
+  wifiSsid?: string;
+  wifiPassword?: string;
 }

@@ -91,7 +91,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ selectedSection, onSelec
                             <button
                                 key={table.id}
                                 onClick={() => onSelectTable(table)}
-                                className={`group border p-4 lg:p-6 rounded-2xl transition-all text-center flex flex-col items-center justify-center gap-2 active:scale-95 aspect-square relative ${
+                                className={`group border p-4 lg:p-6 rounded-3xl transition-all text-center flex flex-col items-center justify-center gap-2 active:scale-95 aspect-square relative ${
                                   hasOrder 
                                     ? 'bg-orange-500/10 border-orange-500/30 hover:border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.1)]' 
                                     : 'bg-slate-900 border-white/10 hover:border-white/20'

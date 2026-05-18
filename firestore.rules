@@ -63,7 +63,7 @@ service cloud.firestore {
     }
 
     function isValidSetting(data) {
-      return data.keys().size() <= 10 &&
+      return data.keys().size() <= 12 &&
              data.get('name', 'Unknown') is string &&
              data.get('description', '') is string &&
              data.get('logo', '') is string &&
@@ -71,7 +71,9 @@ service cloud.firestore {
              data.get('instagram', '') is string &&
              data.get('twitter', '') is string &&
              data.get('facebook', '') is string &&
-             data.get('tiktok', '') is string;
+             data.get('tiktok', '') is string &&
+             data.get('wifiSsid', '') is string &&
+             data.get('wifiPassword', '') is string;
     }
 
     function isValidSale(data) {
