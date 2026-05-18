@@ -13,7 +13,7 @@ export const CategoryFilter = React.memo(({
   onSelect,
 }: CategoryFilterProps) => {
   return (
-    <div className="flex gap-3 overflow-x-auto scrollbar-hide py-2 touch-pan-x">
+    <div className="flex gap-3 overflow-x-auto scrollbar-hide py-2">
       {categories.map((category) => {
         const isActive = activeCategoryId === category.id;
 

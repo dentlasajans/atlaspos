@@ -84,7 +84,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ table, onBack, onLog
           </header>
 
           {/* Categories */}
-          <div className="mb-4 lg:mb-8 shrink-0 -mx-4 lg:mx-0 px-4 lg:px-0 scrollbar-hide overflow-x-auto touch-pan-x">
+          <div className="mb-4 lg:mb-8 shrink-0 -mx-4 lg:mx-0 px-4 lg:px-0 scrollbar-hide overflow-x-auto">
             <CategoryFilter 
               categories={categories} 
               activeCategoryId={activeCategory} 
@@ -93,7 +93,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ table, onBack, onLog
           </div>
 
           {/* Product Grid */}
-          <div className="flex-1 overflow-y-auto pb-28 md:pb-8 scrollbar-hide -mx-2 lg:mx-0 px-2 lg:px-0 touch-pan-y">
+          <div className="flex-1 overflow-y-auto pb-28 md:pb-8 scrollbar-hide -mx-2 lg:mx-0 px-2 lg:px-0">
             <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 lg:gap-6">
                 {filteredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} onAdd={handleAddToCart} />

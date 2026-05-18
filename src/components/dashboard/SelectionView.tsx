@@ -8,7 +8,7 @@ interface SelectionViewProps {
 
 export const SelectionView: React.FC<SelectionViewProps> = ({ onSelect, onLogout }) => {
   return (
-    <div className="flex bg-transparent font-sans text-slate-100 flex-col items-center justify-center w-full h-full p-4 relative z-10">
+    <div className="flex bg-transparent font-sans text-slate-100 flex-col items-center justify-center w-full min-h-[100dvh] py-10 px-4 relative z-10">
       
       <div className="w-full max-w-4xl flex flex-col">
         <header className="flex justify-between items-start mb-10">

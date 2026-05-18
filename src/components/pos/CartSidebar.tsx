@@ -35,7 +35,7 @@ export const CartSidebar: React.FC<{ onClose?: () => void, tableName?: string, o
       </div>
 
       {/* Cart Items */}
-      <div className="flex-1 px-6 space-y-4 overflow-y-auto py-4 scrollbar-hide touch-pan-y">
+      <div className="flex-1 px-6 space-y-4 overflow-y-auto py-4 scrollbar-hide">
           {hasItems ? (
             state.items.map((item) => (
               <div

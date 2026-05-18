@@ -40,7 +40,7 @@ export const TablesView: React.FC<TablesViewProps> = ({ selectedSection, onSelec
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto scrollbar-hide pb-8 touch-pan-y">
+          <div className="flex-1 overflow-y-auto scrollbar-hide pb-8">
             {!selectedSection ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                  {sections.length === 0 && (

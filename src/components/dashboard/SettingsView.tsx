@@ -268,8 +268,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
     <div className="flex h-[100dvh] bg-transparent overflow-hidden font-sans text-slate-100 flex-col relative w-full">
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <div className="flex-1 flex flex-col min-w-0 p-4 lg:p-8 overflow-hidden">
-          <header className="mb-6 lg:mb-10 shrink-0 flex items-center justify-between">
-            <div className="flex items-center gap-4">
+          <header className="mb-6 lg:mb-10 shrink-0 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4 w-full md:w-auto">
               <button 
                 onClick={() => {
                   if (newProductState.image) deleteCloudinaryImage(newProductState.image);
@@ -285,35 +285,35 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
               </div>
             </div>
             
-            <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+            <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 overflow-x-auto whitespace-nowrap scrollbar-hide max-w-full">
                 <button 
                   onClick={() => setActiveTab('tables')}
-                  className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'tables' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                  className={`px-4 lg:px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'tables' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
                 >
                     Masalar
                 </button>
                 <button 
                   onClick={() => setActiveTab('menu')}
-                  className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'menu' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                  className={`px-4 lg:px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'menu' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
                 >
                     Menü
                 </button>
                 <button 
                   onClick={() => setActiveTab('users')}
-                  className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'users' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                  className={`px-4 lg:px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'users' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
                 >
                     Kullanıcılar
                 </button>
                 <button 
                   onClick={() => setActiveTab('company')}
-                  className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'company' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                  className={`px-4 lg:px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'company' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
                 >
                     İşletmem
                 </button>
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto scrollbar-hide space-y-6 pb-8 touch-pan-y max-w-5xl">
+          <div className="flex-1 overflow-y-auto scrollbar-hide space-y-6 pb-8 max-w-5xl">
             
             {activeTab === 'tables' && (
               <>

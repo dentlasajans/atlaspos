@@ -7,6 +7,7 @@ import { SelectionView } from './components/dashboard/SelectionView';
 import { POSView } from './components/pos/POSView';
 import { SettingsView } from './components/dashboard/SettingsView';
 import { QRMenuView } from './components/qrmenu/QRMenuView';
+import { InstallPWA } from './components/InstallPWA';
 import { auth } from './lib/firebase';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 
@@ -77,7 +78,7 @@ function MainApp() {
   }
 
   return (
-    <div className="h-full w-full">
+    <div className="min-h-[100dvh] w-full flex flex-col">
         {content}
     </div>
   );
@@ -95,6 +96,7 @@ export default function App() {
 
   return (
     <RestaurantProvider>
+      <InstallPWA />
       <HashRouter>
         <Routes>
           <Route path="/" element={<MainApp />} />
