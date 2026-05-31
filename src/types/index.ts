@@ -28,13 +28,14 @@ export interface OrderState {
 export interface Firm {
   id: string;
   name: string;
-  firmCode: string;
+  licenseKey: string;
   isActive: boolean;
   adminEmail: string;
   createdAt: number;
   plan: 'basic' | 'pro' | 'enterprise';
   licenseStartDate?: number;
   licenseEndDate?: number;
+  modules?: string[];
 }
 
 export interface AppUser {
@@ -42,6 +43,7 @@ export interface AppUser {
   name: string;
   pin: string;
   role: 'admin' | 'waiter' | 'cashier';
+  modules?: string[];
 }
 
 export interface RestaurantInfo {

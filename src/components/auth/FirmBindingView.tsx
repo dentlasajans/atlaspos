@@ -9,7 +9,7 @@ interface FirmBindingViewProps {
 }
 
 export const FirmBindingView: React.FC<FirmBindingViewProps> = ({ onBind }) => {
-  const [firmCode, setFirmCode] = useState('');
+  const [licenseKey, setLicenseKey] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -21,12 +21,12 @@ export const FirmBindingView: React.FC<FirmBindingViewProps> = ({ onBind }) => {
     try {
       const q = query(
         collection(db, 'firms'), 
-        where('firmCode', '==', firmCode.trim())
+        where('licenseKey', '==', licenseKey.trim())
       );
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        setError('Geçersiz Firma Kodu. Lütfen kontrol edip tekrar deneyin.');
+        setError('Geçersiz Lisans Anahtarı. Lütfen kontrol edip tekrar deneyin.');
         setLoading(false);
         return;
       }
@@ -65,7 +65,7 @@ export const FirmBindingView: React.FC<FirmBindingViewProps> = ({ onBind }) => {
                     <Building2 className="w-10 h-10 text-white" />
                 </div>
                 <h1 className="text-2xl font-bold tracking-tight">Firma Girişi</h1>
-                <p className="text-slate-400 text-sm mt-2">Sisteme erişmek için 6 haneli firma kodunuzu girin.</p>
+                <p className="text-slate-400 text-sm mt-2">Sisteme erişmek için lisans anahtarınızı girin.</p>
             </div>
 
             <form onSubmit={handleBind} className="space-y-6">
@@ -77,7 +77,7 @@ export const FirmBindingView: React.FC<FirmBindingViewProps> = ({ onBind }) => {
                 
                 <div className="space-y-4">
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-400">Firma Kodu</label>
+                        <label className="text-sm font-medium text-slate-400">Lisans Anahtarı</label>
                         <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                                 <Key className="h-5 w-5 text-slate-500" />
@@ -85,8 +85,8 @@ export const FirmBindingView: React.FC<FirmBindingViewProps> = ({ onBind }) => {
                             <input
                                 type="text"
                                 required
-                                value={firmCode}
-                                onChange={(e) => setFirmCode(e.target.value.replace(/[^0-9]/g, ''))}
+                                value={licenseKey}
+                                onChange={(e) => setLicenseKey(e.target.value)}
                                 className="block w-full pl-11 pr-4 py-4 bg-slate-950/50 border border-white/10 rounded-xl text-slate-200 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500 transition-all font-mono tracking-widest text-center"
                                 placeholder="Örn: 123456"
                             />
@@ -96,7 +96,7 @@ export const FirmBindingView: React.FC<FirmBindingViewProps> = ({ onBind }) => {
 
                 <button
                     type="submit"
-                    disabled={loading || !firmCode}
+                    disabled={loading || !licenseKey}
                     className="w-full flex justify-center py-4 px-4 rounded-xl shadow-sm font-bold text-white bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] mt-6"
                 >
                     {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : 'Devam Et'}

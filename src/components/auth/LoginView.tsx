@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, LogOut, AlertTriangle } from 'lucide-react';
+import { Lock, LogOut } from 'lucide-react';
 import { useRestaurant } from '../../context/RestaurantContext';
 
 interface LoginViewProps {
-  onLoginSuccess: (userRole: string, userName: string) => void;
+  onLoginSuccess: (userRole: string, userName: string, userId: string) => void;
   onUnbind: () => void;
 }
 
@@ -11,25 +11,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onUnbind }
   const { appUsers, firmData } = useRestaurant();
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
-  const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (firmData?.licenseEndDate) {
-      const now = Date.now();
-      const diff = firmData.licenseEndDate - now;
-      const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-      
-      if (days <= 30 && days >= 0) {
-        setDaysRemaining(days);
-      }
-    }
-  }, [firmData]);
 
   const checkPin = (currentPin: string) => {
     // Check main admin fallback pin
     if (currentPin === '1234') {
         setPin(''); // clear pin on success so it doesn't linger
-        onLoginSuccess('admin', 'Admin');
+        onLoginSuccess('admin', 'Admin', 'admin_fallback');
         return;
     }
 
@@ -37,7 +24,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onUnbind }
     const staff = appUsers.find(u => u.pin === currentPin);
     if (staff) {
         setPin('');
-        onLoginSuccess(staff.role || 'waiter', staff.name);
+        onLoginSuccess(staff.role || 'waiter', staff.name, staff.id);
     } else {
         setError(true);
         setTimeout(() => setPin(''), 1000);
@@ -100,15 +87,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onUnbind }
           {appUsers.length === 0 && (
             <div className="mb-4 bg-purple-500/10 border border-purple-500/20 text-purple-400 px-4 py-3 rounded-xl flex items-center gap-3 w-full text-sm">
                 Varsayılan sistem yöneticisi PIN kodu: 1234
-            </div>
-          )}
-
-          {daysRemaining !== null && (
-            <div className="mb-6 bg-orange-500/10 border border-orange-500/20 text-orange-400 px-4 py-3 rounded-xl flex items-center gap-3 w-full animate-in fade-in slide-in-from-bottom-2">
-              <AlertTriangle className="w-5 h-5 shrink-0" />
-              <div className="text-sm font-medium">
-                Lisans sürenizin dolmasına <strong className="text-orange-300">{daysRemaining} gün</strong> kaldı.
-              </div>
             </div>
           )}
 

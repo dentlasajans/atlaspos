@@ -14,7 +14,7 @@ import { auth, db } from './lib/firebase';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { Firm } from './types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 
 function MainApp({ firmId, onUnbind }: { firmId: string, onUnbind: () => void }) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
@@ -82,12 +82,13 @@ function MainApp({ firmId, onUnbind }: { firmId: string, onUnbind: () => void })
     };
   }, [isAuthenticated]);
 
-  const handleLoginSuccess = (userRole: string, userName: string) => {
+  const handleLoginSuccess = (userRole: string, userName: string, userId: string) => {
     setIsAuthenticated(true);
     localStorage.setItem('isAuthenticated', 'true');
     localStorage.setItem('lastActivity', Date.now().toString());
     localStorage.setItem('userRole', userRole);
     localStorage.setItem('userName', userName);
+    localStorage.setItem('userId', userId);
     setCurrentView('selection');
   };
 
@@ -97,6 +98,7 @@ function MainApp({ firmId, onUnbind }: { firmId: string, onUnbind: () => void })
     localStorage.removeItem('lastActivity');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userName');
+    localStorage.removeItem('userId');
     setCurrentView('selection');
   };
 
@@ -144,6 +146,7 @@ import { SuperAdminApp } from './components/superadmin/SuperAdminApp';
 export default function App() {
   const [authInitialized, setAuthInitialized] = useState(false);
   const [loadingFirm, setLoadingFirm] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   // Parse hash to see if we are deep linking specifically to qrmenu with a firm ID
   let hashFirmId = null;
@@ -162,8 +165,12 @@ export default function App() {
         try {
           await signInAnonymously(auth);
           // Don't set authInitialized to true here, wait for the next onAuthStateChanged trigger with the user.
-        } catch (error) {
-          console.error(error);
+        } catch (error: any) {
+          console.error('Auth Error:', error);
+          if (error.code === 'auth/admin-restricted-operation') {
+              setAuthError('Firebase Authentication ayarlarında "Anonymous" (Anonim) giriş sağlayıcısı etkinleştirilmemiş veya "Enable create (sign-up)" kapatılmış.');
+              console.warn('Firebase Anonymous Auth is not enabled or user creation is disabled in Firebase console.');
+          }
           setAuthInitialized(true); // Fallback so we don't hang
         }
       } else {
@@ -224,6 +231,26 @@ export default function App() {
     setFirmId(null);
     setFirmData(null);
   };
+
+  if (authError) {
+      return (
+          <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
+              <div className="bg-slate-900 border border-red-500/20 p-8 rounded-2xl max-w-md w-full text-center">
+                  <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <AlertTriangle className="w-8 h-8" />
+                  </div>
+                  <h2 className="text-xl font-bold text-white mb-2">Kimlik Doğrulama Hatası</h2>
+                  <p className="text-slate-400 mb-6">{authError}</p>
+                  <p className="text-sm text-slate-500 mb-6">
+                      Lütfen Firebase konsoluna gidin, <strong>Authentication &gt; Sign-in method</strong> sekmesinden <strong>Anonymous</strong> sağlayıcısını aktifleştirin.
+                  </p>
+                  <a href="#/admin" className="inline-block bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-semibold transition-colors">
+                      Admin Paneline Git
+                  </a>
+              </div>
+          </div>
+      );
+  }
 
   if (!authInitialized || loadingFirm) {
     return (

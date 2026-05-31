@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useRestaurant } from '../../context/RestaurantContext';
-import { Trash2, Plus, ArrowLeft } from 'lucide-react';
+import { Trash2, Plus, ArrowLeft, Edit } from 'lucide-react';
 import { Category, Product } from '../../types';
 
 interface SettingsViewProps {
@@ -10,12 +10,20 @@ interface SettingsViewProps {
 
 type Tab = 'tables' | 'menu' | 'users' | 'company';
 
+export const AVAILABLE_MODULES = [
+    { id: 'pos', name: 'Servis (Garson)' },
+    { id: 'cashier', name: 'Kasa' },
+    { id: 'kitchen', name: 'Mutfak' },
+    { id: 'reports', name: 'Raporlar' },
+    { id: 'settings', name: 'Ayarlar' }
+];
+
 export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChange }) => {
   const { 
       sections, tables, addSection, deleteSection, addTable, deleteTable,
       categories, products, addCategory, deleteCategory, addProduct, deleteProduct, updateProduct,
       appUsers, addAppUser, deleteAppUser, updateAppUser,
-      restaurantInfo, updateRestaurantInfo
+      restaurantInfo, updateRestaurantInfo, firmData
   } = useRestaurant();
   
   const [activeTab, setActiveTab] = useState<Tab>('tables');
@@ -28,7 +36,15 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
   const [newProductState, setNewProductState] = useState<Partial<Product>>({ name: '', price: 0, description: '', image: '', categoryId: '', hasStock: false, stockCount: 0 });
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const [newUser, setNewUser] = useState({ name: '', pin: '', role: 'waiter' });
+  const userId = localStorage.getItem('userId');
+  const currentUser = appUsers.find(u => u.id === userId);
+  const firmModules = firmData?.modules || ['pos', 'cashier', 'settings'];
+  const userModules = currentUser?.modules || ['pos', 'cashier', 'settings'];
+  const isFallbackAdmin = userId === 'admin_fallback';
+  const myAvailableModules = AVAILABLE_MODULES.filter(m => (isFallbackAdmin ? firmModules : userModules).includes(m.id));
+
+  const [editingAppUser, setEditingAppUser] = useState<Partial<AppUser>>({ name: '', pin: '', role: 'waiter', modules: [] });
+
   const [infoState, setInfoState] = useState({
       name: restaurantInfo?.name || '',
       description: restaurantInfo?.description || '',
@@ -267,10 +283,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
       deleteProduct(id);
   };
 
-  const handleAddUser = () => {
-      if (newUser.name && newUser.pin && newUser.pin.length >= 4 && newUser.pin.length <= 8) {
-          addAppUser({ name: newUser.name, pin: newUser.pin, role: newUser.role as any });
-          setNewUser({ name: '', pin: '', role: 'waiter' });
+  const handleSaveAppUser = () => {
+      if (editingAppUser.name && editingAppUser.pin && editingAppUser.pin.length >= 4 && editingAppUser.pin.length <= 8) {
+          if (editingAppUser.id) {
+              updateAppUser(editingAppUser.id, { 
+                  name: editingAppUser.name, 
+                  pin: editingAppUser.pin, 
+                  role: editingAppUser.role as any,
+                  modules: editingAppUser.modules || []
+              });
+          } else {
+              addAppUser({ 
+                  name: editingAppUser.name, 
+                  pin: editingAppUser.pin, 
+                  role: editingAppUser.role as any,
+                  modules: editingAppUser.modules || []
+              });
+          }
+          setEditingAppUser({ name: '', pin: '', role: 'waiter', modules: [] });
       } else {
           alert("Lütfen tüm alanları doldurun ve PIN'in 4-8 haneli olduğundan emin olun.");
       }
@@ -620,16 +650,47 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
             {activeTab === 'users' && (
                <div className="space-y-6">
                   <div className="bg-white/5 border border-white/10 p-5 lg:p-6 rounded-3xl">
-                     <h2 className="text-xl font-semibold mb-4 text-slate-200">Personel Ekle</h2>
-                     <div className="flex flex-col md:flex-row gap-3">
-                        <input type="text" placeholder="Ad Soyad" value={newUser.name} onChange={e => setNewUser(p => ({...p, name: e.target.value}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500 w-full md:w-1/3" />
-                        <input type="text" placeholder="4-8 Haneli PIN" maxLength={8} value={newUser.pin} onChange={e => setNewUser(p => ({...p, pin: e.target.value.replace(/[^0-9]/g, '')}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500 w-full md:w-1/4" />
-                        <select value={newUser.role} onChange={e => setNewUser(p => ({...p, role: e.target.value}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500 w-full md:w-1/4">
-                            <option value="waiter">Garson</option>
-                            <option value="cashier">Kasiyer</option>
-                            <option value="admin">Yönetici</option>
-                        </select>
-                        <button onClick={handleAddUser} disabled={!newUser.name || newUser.pin.length < 4} className="bg-emerald-500 text-slate-950 px-6 py-2 rounded-xl font-semibold disabled:opacity-50 active:scale-95 w-full md:w-auto mt-2 md:mt-0">Ekle</button>
+                     <div className="flex justify-between items-center mb-4">
+                         <h2 className="text-xl font-semibold text-slate-200">{editingAppUser.id ? 'Personel Düzenle' : 'Personel Ekle'}</h2>
+                         {editingAppUser.id && (
+                             <button onClick={() => setEditingAppUser({ name: '', pin: '', role: 'waiter', modules: [] })} className="text-sm text-slate-400 hover:text-white">İptal / Yeni Ekle</button>
+                         )}
+                     </div>
+                     <div className="flex flex-col gap-4">
+                         <div className="flex flex-col md:flex-row gap-3">
+                             <input type="text" placeholder="Ad Soyad" value={editingAppUser.name} onChange={e => setEditingAppUser(p => ({...p, name: e.target.value}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500 w-full md:w-1/3" />
+                             <input type="text" placeholder="4-8 Haneli PIN" maxLength={8} value={editingAppUser.pin} onChange={e => setEditingAppUser(p => ({...p, pin: e.target.value.replace(/[^0-9]/g, '')}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500 w-full md:w-1/4" />
+                             <select value={editingAppUser.role} onChange={e => setEditingAppUser(p => ({...p, role: e.target.value as any}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500 w-full md:w-1/4">
+                                 <option value="waiter">Garson</option>
+                                 <option value="cashier">Kasiyer</option>
+                                 <option value="admin">Yönetici</option>
+                             </select>
+                         </div>
+                         <div>
+                             <label className="block text-xs font-medium text-slate-400 mb-2">Erişilebilir Modüller</label>
+                             <div className="flex flex-wrap gap-2">
+                                 {myAvailableModules.map(module => (
+                                     <label key={module.id} className="flex items-center gap-2 bg-slate-900 px-3 py-1.5 rounded-lg border border-white/5 cursor-pointer hover:bg-slate-800 transition-colors">
+                                         <input 
+                                             type="checkbox" 
+                                             className="w-3 h-3 rounded bg-slate-800 border-slate-700 text-purple-600 focus:ring-purple-600"
+                                             checked={(editingAppUser.modules || []).includes(module.id)}
+                                             onChange={(e) => {
+                                                 const current = editingAppUser.modules || [];
+                                                 const updated = e.target.checked ? [...current, module.id] : current.filter(m => m !== module.id);
+                                                 setEditingAppUser({...editingAppUser, modules: updated});
+                                             }}
+                                         />
+                                         <span className="text-xs font-medium text-slate-300">{module.name}</span>
+                                     </label>
+                                 ))}
+                             </div>
+                         </div>
+                         <div className="flex justify-end">
+                             <button onClick={handleSaveAppUser} disabled={!editingAppUser.name || !editingAppUser.pin || editingAppUser.pin.length < 4} className="bg-emerald-500 text-slate-950 px-6 py-2 rounded-xl font-semibold disabled:opacity-50 active:scale-95 w-full md:w-auto mt-2 md:mt-0">
+                                 {editingAppUser.id ? 'Güncelle' : 'Ekle'}
+                             </button>
+                         </div>
                      </div>
                   </div>
 
@@ -649,9 +710,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
                                          {user.role === 'admin' ? 'Yönetici' : user.role === 'waiter' ? 'Garson' : 'Kasiyer'}
                                      </span>
                                  </div>
-                                 <div className="text-sm text-slate-400 mt-1">PIN: {user.pin}</div>
+                                 <div className="text-sm text-slate-400 mt-1 flex items-center gap-2">
+                                     <span>PIN: {user.pin}</span>
+                                     {user.modules && user.modules.length > 0 && (
+                                         <span className="text-xs bg-slate-800 px-2 py-0.5 rounded text-slate-300">
+                                             {user.modules.map(modId => AVAILABLE_MODULES.find(m => m.id === modId)?.name).filter(Boolean).join(', ')}
+                                         </span>
+                                     )}
+                                 </div>
                               </div>
-                              <button onClick={() => deleteAppUser(user.id)} className="text-red-400 hover:text-red-300 p-2 bg-red-400/10 rounded-lg"><Trash2 className="w-5 h-5"/></button>
+                              <div className="flex items-center gap-2">
+                                  <button onClick={() => setEditingAppUser(user)} className="text-slate-400 hover:text-white p-2 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors"><Edit className="w-5 h-5"/></button>
+                                  <button onClick={() => deleteAppUser(user.id)} className="text-red-400 hover:text-red-300 p-2 bg-red-400/10 rounded-lg transition-colors"><Trash2 className="w-5 h-5"/></button>
+                              </div>
                            </div>
                         ))}
                         {appUsers.length === 0 && <div className="text-slate-500">Hiç personel eklenmemiş.</div>}
