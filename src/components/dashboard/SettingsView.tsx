@@ -40,8 +40,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
   const currentUser = appUsers.find(u => u.id === userId);
   const firmModules = firmData?.modules || ['pos', 'cashier', 'settings'];
   const userModules = currentUser?.modules || ['pos', 'cashier', 'settings'];
-  const isFallbackAdmin = userId === 'admin_fallback';
-  const myAvailableModules = AVAILABLE_MODULES.filter(m => (isFallbackAdmin ? firmModules : userModules).includes(m.id));
+  const myAvailableModules = AVAILABLE_MODULES.filter(m => userModules.includes(m.id));
 
   const [editingAppUser, setEditingAppUser] = useState<Partial<AppUser>>({ name: '', pin: '', role: 'waiter', modules: [] });
 

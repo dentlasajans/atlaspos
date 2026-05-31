@@ -42,9 +42,8 @@ export const SelectionView: React.FC<SelectionViewProps> = ({ onSelect, onLogout
 
   const checkAccess = (moduleId: string) => {
       const hasFirmAccess = firmModules.includes(moduleId);
-      const isFallbackAdmin = userId === 'admin_fallback';
-      // App admins no longer bypass module checks. They only have the modules explicitly given to them (or full access if main fallback).
-      const hasUserAccess = isFallbackAdmin || userModules.includes(moduleId); 
+      // App admins no longer bypass module checks. They only have the modules explicitly given to them.
+      const hasUserAccess = userModules.includes(moduleId); 
       
       return {
           allowed: hasFirmAccess && hasUserAccess,

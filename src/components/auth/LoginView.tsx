@@ -13,13 +13,6 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onUnbind }
   const [error, setError] = useState(false);
 
   const checkPin = (currentPin: string) => {
-    // Check main admin fallback pin
-    if (currentPin === '1234') {
-        setPin(''); // clear pin on success so it doesn't linger
-        onLoginSuccess('admin', 'Admin', 'admin_fallback');
-        return;
-    }
-
     // Check staff pins
     const staff = appUsers.find(u => u.pin === currentPin);
     if (staff) {
@@ -85,8 +78,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onUnbind }
           <p className="text-slate-400 text-sm mb-4 text-center px-4">Devam etmek için 4-8 haneli PIN kodunuzu giriniz.</p>
 
           {appUsers.length === 0 && (
-            <div className="mb-4 bg-purple-500/10 border border-purple-500/20 text-purple-400 px-4 py-3 rounded-xl flex items-center gap-3 w-full text-sm">
-                Varsayılan sistem yöneticisi PIN kodu: 1234
+            <div className="mb-4 bg-purple-500/10 border border-purple-500/20 text-purple-400 px-4 py-3 rounded-xl flex items-center gap-3 w-full text-sm text-center justify-center">
+                Henüz personel eklenmemiş. Lütfen Super Admin panelinden bir yönetici oluşturun.
             </div>
           )}
 
