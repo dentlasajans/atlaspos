@@ -59,6 +59,14 @@ export const RestaurantProvider = ({ children, firmId, firmData }: { children: R
     const setupSubscriptions = () => {
       if (!firmId) return;
 
+      setSections([]);
+      setTables([]);
+      setCategories([]);
+      setProducts([]);
+      setAppUsers([]);
+      setRestaurantInfo(null);
+      setIsInitializing(true);
+
       const unsubscribeSections = onSnapshot(collection(db, 'firms', firmId, 'sections'), (snapshot) => {
         setSections(snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Section)));
       }, error => {
