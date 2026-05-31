@@ -41,9 +41,8 @@ export const SelectionView: React.FC<SelectionViewProps> = ({ onSelect, onLogout
   const userModules = currentUser?.modules || ['pos', 'cashier', 'settings'];
 
   const checkAccess = (moduleId: string) => {
-      const hasFirmAccess = firmModules.includes(moduleId);
-      // App admins no longer bypass module checks. They only have the modules explicitly given to them.
-      const hasUserAccess = userModules.includes(moduleId); 
+      const hasFirmAccess = firmModules.includes(moduleId) || (moduleId === 'settings' && firmModules.includes('qr'));
+      const hasUserAccess = userModules.includes(moduleId) || (moduleId === 'settings' && userModules.includes('qr')); 
       
       return {
           allowed: hasFirmAccess && hasUserAccess,

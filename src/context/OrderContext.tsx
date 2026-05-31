@@ -86,7 +86,16 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
             quantity: newItems[existingItemIndex].quantity + 1
           };
         } else {
-          newItems.push({ ...action.payload.product, quantity: 1, ...action.payload.notes && {notes: action.payload.notes} });
+          const userId = localStorage.getItem('userId') || 'unknown';
+          const userName = localStorage.getItem('userName') || 'Bilinmeyen';
+          
+          newItems.push({
+            ...action.payload.product,
+            quantity: 1,
+            addedAt: Date.now(),
+            addedBy: { id: userId, name: userName },
+            ...action.payload.notes && {notes: action.payload.notes}
+          });
         }
         
         const totalAmount = calculateTotal(newItems);

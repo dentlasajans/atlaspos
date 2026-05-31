@@ -18,6 +18,11 @@ export interface Category {
 export interface OrderItem extends Product {
   quantity: number;
   notes?: string;
+  addedAt?: number;
+  addedBy?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface OrderState {
@@ -32,7 +37,8 @@ export interface Firm {
   isActive: boolean;
   adminEmail: string;
   createdAt: number;
-  plan: 'basic' | 'pro' | 'enterprise';
+  plan: 'basic' | 'pro' | 'enterprise' | 'qr';
+  slug?: string;
   licenseStartDate?: number;
   licenseEndDate?: number;
   modules?: string[];

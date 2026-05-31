@@ -10,7 +10,8 @@ const AVAILABLE_MODULES = [
     { id: 'cashier', name: 'Kasa' },
     { id: 'kitchen', name: 'Mutfak' },
     { id: 'reports', name: 'Raporlar' },
-    { id: 'settings', name: 'Ayarlar' }
+    { id: 'settings', name: 'Ayarlar' },
+    { id: 'qr', name: 'QR Menü' }
 ];
 
 export const SuperAdminDashboard: React.FC = () => {
@@ -94,11 +95,16 @@ export const SuperAdminDashboard: React.FC = () => {
             const id = editingFirm.id || crypto.randomUUID();
             const licenseKey = editingFirm.licenseKey || generateLicenseKey();
 
+            const selectedModules = editingFirm.modules || [];
+            const isOnlyQr = selectedModules.length === 1 && selectedModules[0] === 'qr';
+
             const firmData: Partial<Firm> = {
                 name: editingFirm.name || 'Yeni Firma',
+                slug: editingFirm.slug || '',
+                qrTheme: editingFirm.qrTheme || 'classic-dark',
                 adminEmail: editingFirm.adminEmail || '',
                 licenseKey: licenseKey,
-                plan: 'pro',
+                plan: isOnlyQr ? 'qr' : 'pro',
                 isActive: editingFirm.isActive !== false,
                 licenseStartDate: editingFirm.licenseStartDate || Date.now(),
                 licenseEndDate: editingFirm.licenseEndDate || Date.now() + 30 * 24 * 60 * 60 * 1000,
@@ -221,8 +227,37 @@ export const SuperAdminDashboard: React.FC = () => {
                                 <input required type="text" value={editingFirm.name || ''} onChange={e => setEditingFirm({...editingFirm, name: e.target.value})} className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500" placeholder="Örn: Lezzet Restoranı" />
                             </div>
                             <div>
+                                <label className="block text-sm font-medium text-slate-400 mb-2">Firma Uzantısı (QR Menü Linki)</label>
+                                <div className="flex bg-slate-950 border border-white/10 rounded-xl overflow-hidden focus-within:border-purple-500">
+                                    <span className="px-3 py-3 text-slate-500 text-sm whitespace-nowrap bg-white/5 border-r border-white/10 select-none">
+                                        atlaspos.com/#/
+                                    </span>
+                                    <input type="text" value={editingFirm.slug || ''} onChange={e => setEditingFirm({...editingFirm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '')})} className="w-full bg-transparent px-4 py-3 text-white focus:outline-none placeholder:text-slate-600" placeholder="deneme" />
+                                </div>
+                            </div>
+                            <div>
                                 <label className="block text-sm font-medium text-slate-400 mb-2">Lisans Anahtarı</label>
                                 <input type="text" value={editingFirm.licenseKey || ''} onChange={e => setEditingFirm({...editingFirm, licenseKey: e.target.value})} className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 font-mono" placeholder="Boş bırakırsanız otomatik oluşturulur" />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-slate-400 mb-2">Varsayılan QR Tema</label>
+                                <select 
+                                    className="w-full bg-slate-950 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-purple-500 appearance-none"
+                                    value={editingFirm.qrTheme || 'classic-dark'}
+                                    onChange={(e) => setEditingFirm({...editingFirm, qrTheme: e.target.value})}
+                                >
+                                    <option value="classic-dark">Klasik Koyu (Varsayılan)</option>
+                                    <option value="minimal-light">Minimal Açık</option>
+                                    <option value="warm-woods">Sıcak Ahşap</option>
+                                    <option value="neon-nights">Neon Geceler</option>
+                                    <option value="ocean-blue">Okyanus Mavisi</option>
+                                    <option value="pastel-dream">Pastel Rüyaları</option>
+                                    <option value="monochrome">Keskin Siyah Beyaz</option>
+                                    <option value="forest-green">Doğal Yeşil</option>
+                                    <option value="spicy-red">Acı Kırmızı</option>
+                                    <option value="luxury-gold">Lüks Saray</option>
+                                </select>
                             </div>
                             
                             {!editingFirm.id && (

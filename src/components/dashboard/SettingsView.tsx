@@ -15,7 +15,8 @@ export const AVAILABLE_MODULES = [
     { id: 'cashier', name: 'Kasa' },
     { id: 'kitchen', name: 'Mutfak' },
     { id: 'reports', name: 'Raporlar' },
-    { id: 'settings', name: 'Ayarlar' }
+    { id: 'settings', name: 'Ayarlar' },
+    { id: 'qr', name: 'QR Menü' }
 ];
 
 export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChange }) => {
@@ -26,7 +27,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
       restaurantInfo, updateRestaurantInfo, firmData
   } = useRestaurant();
   
-  const [activeTab, setActiveTab] = useState<Tab>('tables');
+  const [activeTab, setActiveTab] = useState<Tab>(firmData?.plan === 'qr' ? 'menu' : 'tables');
+
+  React.useEffect(() => {
+    if (firmData?.plan === 'qr' && (activeTab === 'tables' || activeTab === 'users')) {
+        setActiveTab('menu');
+    }
+  }, [firmData?.plan, activeTab]);
 
   const [newSectionName, setNewSectionName] = useState('');
   const [newTableNames, setNewTableNames] = useState<{[sectionId: string]: string}>({});
@@ -332,24 +339,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
             </div>
             
             <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 overflow-x-auto whitespace-nowrap scrollbar-hide max-w-full">
-                <button 
-                  onClick={() => setActiveTab('tables')}
-                  className={`px-4 lg:px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'tables' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
-                >
-                    Masalar
-                </button>
+                {firmData?.plan !== 'qr' && (
+                  <button 
+                    onClick={() => setActiveTab('tables')}
+                    className={`px-4 lg:px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'tables' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                  >
+                      Masalar
+                  </button>
+                )}
                 <button 
                   onClick={() => setActiveTab('menu')}
                   className={`px-4 lg:px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'menu' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
                 >
                     Menü
                 </button>
-                <button 
-                  onClick={() => setActiveTab('users')}
-                  className={`px-4 lg:px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'users' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
-                >
-                    Kullanıcılar
-                </button>
+                {firmData?.plan !== 'qr' && (
+                  <button 
+                    onClick={() => setActiveTab('users')}
+                    className={`px-4 lg:px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'users' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}
+                  >
+                      Kullanıcılar
+                  </button>
+                )}
                 <button 
                   onClick={() => setActiveTab('company')}
                   className={`px-4 lg:px-6 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'company' ? 'bg-purple-500 text-white' : 'text-slate-400 hover:text-white'}`}

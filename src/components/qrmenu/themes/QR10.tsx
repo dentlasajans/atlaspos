@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useRestaurant } from '../../context/RestaurantContext';
-import { CategoryFilter } from '../pos/CategoryFilter';
-import { formatCurrency } from '../../lib/utils';
+import { useRestaurant } from '../../../context/RestaurantContext';
+import { CategoryFilter } from '../../pos/CategoryFilter';
+import { formatCurrency } from '../../../lib/utils';
 import { Search, X, Instagram, Twitter, Facebook } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -172,7 +172,7 @@ const getThemeClasses = (themeId?: string) => {
     }
 };
 
-export const QRMenuView: React.FC = () => {
+export const QR10: React.FC = () => {
   const { categories, products, restaurantInfo, firmData } = useRestaurant();
   const [activeCategory, setActiveCategory] = useState<string>(categories[0]?.id || '');
   const [searchQuery, setSearchQuery] = useState('');
@@ -220,7 +220,8 @@ export const QRMenuView: React.FC = () => {
       ? getOptimizedImage(restaurantInfo.coverImage, 800, 400, "fill")
       : null;
 
-  const themeStyles = useMemo(() => getThemeClasses(firmData?.qrTheme), [firmData?.qrTheme]);
+  const themeStyles = useMemo(() => getThemeClasses('luxury-gold'), []);
+// TODO: Modify this component manually rather than using dynamic themeStyles for full customization.
 
   return (
     <div className={`flex font-sans flex-col min-h-[100dvh] w-full relative overflow-hidden transition-colors duration-500 ${themeStyles.bg}`}>
