@@ -109,9 +109,9 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ table, onBack, onLog
         </div>
 
         {/* Right Sidebar (Cart) */}
-        <aside className={`fixed inset-y-0 right-0 z-50 transform transition-transform duration-300 ease-in-out w-full sm:w-[380px] shrink-0 bg-transparent ${isCartOpen ? 'translate-x-0' : 'translate-x-[100%]'}`}>
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm sm:hidden" onClick={() => setIsCartOpen(false)} aria-hidden="true" />
-          <div className="absolute inset-y-0 right-0 w-full sm:w-[380px] h-full flex flex-col shadow-2xl bg-slate-900 border-l border-white/10">
+        <aside className={`fixed inset-y-0 right-0 z-50 transform transition-transform duration-300 ease-in-out w-full lg:w-[380px] shrink-0 lg:relative lg:transform-none bg-slate-900 border-l border-white/10 ${isCartOpen ? 'translate-x-0' : 'translate-x-[100%]'} lg:flex`}>
+          <div className={`absolute inset-0 bg-slate-950/80 backdrop-blur-sm lg:hidden ${!isCartOpen ? 'hidden' : ''}`} onClick={() => setIsCartOpen(false)} aria-hidden="true" />
+          <div className={`absolute inset-y-0 right-0 w-full sm:w-[380px] lg:w-full lg:static lg:h-full flex flex-col shadow-2xl bg-slate-900 ${!isCartOpen ? 'translate-x-[100%]' : 'translate-x-0'} lg:translate-x-0 transition-transform duration-300 ease-in-out`}>
             <CartSidebar onClose={() => setIsCartOpen(false)} tableName={table.name} onSend={handleSendOrder} />
           </div>
         </aside>
@@ -120,7 +120,7 @@ export const OrderingView: React.FC<OrderingViewProps> = ({ table, onBack, onLog
 
       {/* Cart Bottom Bar */}
       {state.items.length > 0 && !isCartOpen && (
-        <div className="fixed bottom-4 left-4 right-4 z-30 flex justify-center pointer-events-none">
+        <div className="fixed bottom-4 left-4 right-4 z-30 flex justify-center pointer-events-none lg:hidden">
           <button 
             className="w-full max-w-2xl bg-slate-800 text-slate-100 p-4 rounded-3xl flex items-center justify-between shadow-[0_8px_30px_rgb(0,0,0,0.5)] border border-white/10 active:scale-95 transition-transform pointer-events-auto"
             onClick={() => setIsCartOpen(true)}

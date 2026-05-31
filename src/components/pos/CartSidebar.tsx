@@ -29,7 +29,7 @@ export const CartSidebar: React.FC<{ onClose?: () => void, tableName?: string, o
           <span className="text-xs text-slate-400">Yeni Sipariş</span>
         </div>
         {onClose && (
-          <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors">
+          <button onClick={onClose} className="p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors lg:hidden">
             <X className="w-5 h-5" />
           </button>
         )}
