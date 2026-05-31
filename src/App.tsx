@@ -3,16 +3,20 @@ import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { OrderProvider } from './context/OrderContext';
 import { RestaurantProvider } from './context/RestaurantContext';
 import { LoginView } from './components/auth/LoginView';
+import { FirmBindingView } from './components/auth/FirmBindingView';
 import { SelectionView } from './components/dashboard/SelectionView';
 import { POSView } from './components/pos/POSView';
 import { CashRegisterView } from './components/dashboard/CashRegisterView';
 import { SettingsView } from './components/dashboard/SettingsView';
 import { QRMenuView } from './components/qrmenu/QRMenuView';
 import { InstallPWA } from './components/InstallPWA';
-import { auth } from './lib/firebase';
+import { auth, db } from './lib/firebase';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { Firm } from './types';
+import { Loader2 } from 'lucide-react';
 
-function MainApp() {
+function MainApp({ firmId, onUnbind }: { firmId: string, onUnbind: () => void }) {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     const authState = localStorage.getItem('isAuthenticated');
     const lastActivity = localStorage.getItem('lastActivity');
@@ -24,7 +28,6 @@ function MainApp() {
       const TEN_MINUTES = 10 * 60 * 1000;
       
       if (now - last < TEN_MINUTES) {
-        // Still valid, update last activity
         localStorage.setItem('lastActivity', now.toString());
         return true;
       } else {
@@ -46,16 +49,13 @@ function MainApp() {
     const handleActivity = () => {
       if (isAuthenticated) {
         const now = Date.now();
-        // Throttle localStorage updates to every 1 minute max
         if (now - lastUpdate > 60000) {
           localStorage.setItem('lastActivity', now.toString());
           lastUpdate = now;
         }
         
-        // Clear existing timeout
         if (timeoutId) clearTimeout(timeoutId);
         
-        // Set new timeout for 10 minutes (600,000 ms)
         timeoutId = setTimeout(() => {
           handleLogout();
         }, 10 * 60 * 1000);
@@ -63,10 +63,8 @@ function MainApp() {
     };
 
     if (isAuthenticated) {
-      // Set initial timeout
       handleActivity();
       
-      // Add event listeners for activity tracking
       window.addEventListener('mousemove', handleActivity);
       window.addEventListener('keydown', handleActivity);
       window.addEventListener('click', handleActivity);
@@ -109,7 +107,7 @@ function MainApp() {
   }
 
   if (!isAuthenticated) {
-    return <LoginView onLoginSuccess={handleLoginSuccess} />;
+    return <LoginView onLoginSuccess={handleLoginSuccess} onUnbind={onUnbind} />;
   }
 
   let content;
@@ -141,22 +139,122 @@ function MainApp() {
   );
 }
 
+import { SuperAdminApp } from './components/superadmin/SuperAdminApp';
+
 export default function App() {
+  const [authInitialized, setAuthInitialized] = useState(false);
+  const [loadingFirm, setLoadingFirm] = useState(false);
+
+  // Parse hash to see if we are deep linking specifically to qrmenu with a firm ID
+  let hashFirmId = null;
+  const isQRMenuUrl = window.location.hash.startsWith('#/qrmenu');
+  if (isQRMenuUrl) {
+     const params = new URLSearchParams(window.location.hash.split('?')[1]);
+     hashFirmId = params.get('firmId');
+  }
+
+  const [firmId, setFirmId] = useState<string | null>(hashFirmId || localStorage.getItem('firmId'));
+  const [firmData, setFirmData] = useState<Firm | null>(null);
+
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user) {
-        signInAnonymously(auth).catch(console.error);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!user && window.location.hash !== '#/admin') {
+        try {
+          await signInAnonymously(auth);
+          // Don't set authInitialized to true here, wait for the next onAuthStateChanged trigger with the user.
+        } catch (error) {
+          console.error(error);
+          setAuthInitialized(true); // Fallback so we don't hang
+        }
+      } else {
+         setAuthInitialized(true);
       }
     });
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    const checkFirm = async () => {
+      if (!firmId) return;
+      setLoadingFirm(true);
+      try {
+        const firmDoc = await getDoc(doc(db, 'firms', firmId));
+        if (firmDoc.exists()) {
+          const data = { id: firmDoc.id, ...firmDoc.data() } as Firm;
+          if (!data.isActive) {
+            if (!isQRMenuUrl) handleUnbind();
+            alert('Firma hesabı pasife alınmış.');
+            return;
+          }
+          
+          if (data.licenseEndDate && data.licenseEndDate < Date.now()) {
+            if (!isQRMenuUrl) handleUnbind();
+            alert('Lisans süreniz dolmuştur.');
+            return;
+          }
+          
+          setFirmData(data);
+        } else {
+          if (!isQRMenuUrl) handleUnbind();
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingFirm(false);
+      }
+    };
+    
+    if (authInitialized) {
+       checkFirm();
+    }
+  }, [firmId, authInitialized, isQRMenuUrl]);
+
+  const handleBind = (id: string, data: Firm) => {
+    localStorage.setItem('firmId', id);
+    setFirmId(id);
+    setFirmData(data);
+  };
+
+  const handleUnbind = () => {
+    localStorage.removeItem('firmId');
+    localStorage.removeItem('isAuthenticated');
+    localStorage.removeItem('lastActivity');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userName');
+    setFirmId(null);
+    setFirmData(null);
+  };
+
+  if (!authInitialized || loadingFirm) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
+      </div>
+    );
+  }
+
+  // Admin route bypasses firm binding
+  if (window.location.hash === '#/admin') {
+     return (
+        <HashRouter>
+          <Routes>
+            <Route path="/admin" element={<SuperAdminApp />} />
+            <Route path="*" element={<Navigate to="/admin" replace />} />
+          </Routes>
+        </HashRouter>
+     );
+  }
+
+  if (!firmId || !firmData) {
+    return <FirmBindingView onBind={handleBind} />;
+  }
+
   return (
-    <RestaurantProvider>
+    <RestaurantProvider firmId={firmId} firmData={firmData}>
       <InstallPWA />
       <HashRouter>
         <Routes>
-          <Route path="/" element={<MainApp />} />
+          <Route path="/" element={<MainApp firmId={firmId} onUnbind={handleUnbind} />} />
           <Route path="/qrmenu" element={<QRMenuView />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

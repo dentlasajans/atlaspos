@@ -20,13 +20,15 @@ interface CashRegisterViewProps {
 }
 
 export const CashRegisterView: React.FC<CashRegisterViewProps> = ({ onBack }) => {
-  const { tables } = useRestaurant();
+  const { tables, firmId } = useRestaurant();
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [reportPeriod, setReportPeriod] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
   useEffect(() => {
-    const q = query(collection(db, 'sales'), orderBy('createdAt', 'desc'));
+    if (!firmId) return;
+
+    const q = query(collection(db, 'firms', firmId, 'sales'), orderBy('createdAt', 'desc'));
     const unsub = onSnapshot(q, (snapshot) => {
       const loadedSales: Sale[] = [];
       snapshot.forEach(docSnap => {
@@ -49,7 +51,7 @@ export const CashRegisterView: React.FC<CashRegisterViewProps> = ({ onBack }) =>
     }, error => handleFirestoreError(error, OperationType.LIST, 'sales'));
 
     return unsub;
-  }, []);
+  }, [firmId]);
 
   const getFilteredSales = () => {
     const now = new Date();

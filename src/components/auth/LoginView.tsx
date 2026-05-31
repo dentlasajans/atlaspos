@@ -1,19 +1,34 @@
-import React, { useState } from 'react';
-import { Lock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Lock, LogOut, AlertTriangle } from 'lucide-react';
 import { useRestaurant } from '../../context/RestaurantContext';
 
 interface LoginViewProps {
   onLoginSuccess: (userRole: string, userName: string) => void;
+  onUnbind: () => void;
 }
 
-export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
-  const { appUsers } = useRestaurant();
+export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess, onUnbind }) => {
+  const { appUsers, firmData } = useRestaurant();
   const [pin, setPin] = useState('');
   const [error, setError] = useState(false);
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (firmData?.licenseEndDate) {
+      const now = Date.now();
+      const diff = firmData.licenseEndDate - now;
+      const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+      
+      if (days <= 30 && days >= 0) {
+        setDaysRemaining(days);
+      }
+    }
+  }, [firmData]);
 
   const checkPin = (currentPin: string) => {
     // Check main admin fallback pin
     if (currentPin === '1234') {
+        setPin(''); // clear pin on success so it doesn't linger
         onLoginSuccess('admin', 'Admin');
         return;
     }
@@ -21,6 +36,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
     // Check staff pins
     const staff = appUsers.find(u => u.pin === currentPin);
     if (staff) {
+        setPin('');
         onLoginSuccess(staff.role || 'waiter', staff.name);
     } else {
         setError(true);
@@ -30,50 +46,42 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
 
   const handlePinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, ''); // only digits
-    if (value.length <= 4) {
+    if (value.length <= 8) {
       setPin(value);
       setError(false);
-      
-      // Auto login when 4 digits are entered
-      if (value.length === 4) {
-        checkPin(value);
-      }
     }
   };
 
   const handleNumpadClick = (num: string) => {
-    if (pin.length < 4) {
+    if (pin.length < 8) {
       const newPin = pin + num;
       setPin(newPin);
       setError(false);
-      
-      if (newPin.length === 4) {
-        checkPin(newPin);
-      }
     }
   };
 
-  const renderPinDots = () => {
-    const dots = [];
-    for (let i = 0; i < 4; i++) {
-        const isFilled = i < pin.length;
-        dots.push(
-            <div 
-                key={i} 
-                className={`w-4 h-4 rounded-full border-2 transition-colors duration-200 ${
-                  isFilled 
-                    ? (error ? 'bg-red-500 border-red-500' : 'bg-orange-500 border-orange-500') 
-                    : 'bg-transparent border-slate-600'
-                }`}
-            />
-        );
+  const handleSubmit = () => {
+    if (pin.length >= 4) {
+      checkPin(pin);
     }
-    return dots;
   };
+
+
 
   return (
     <div className="flex bg-transparent font-sans text-slate-100 flex-col items-center justify-between w-full min-h-[100dvh] p-4 relative z-10">
       
+      {/* Top action bar */}
+      <div className="absolute top-4 right-4 z-20">
+        <button 
+          onClick={onUnbind}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-900/50 hover:bg-slate-800/80 border border-white/10 rounded-xl text-sm font-medium transition-colors backdrop-blur-md text-slate-300"
+        >
+          <LogOut className="w-4 h-4" />
+          Cihaz Bağlantısını Kes
+        </button>
+      </div>
+
       <div className="flex-1 flex flex-col items-center justify-center w-full">
         <div className="flex flex-col items-center max-w-sm w-full p-8 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl">
           <div className="flex flex-col items-center mb-8">
@@ -86,12 +94,38 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
             <h2 className="text-lg font-bold tracking-widest text-orange-400 uppercase">AtlasPOS</h2>
           </div>
 
-          <h1 className="text-2xl font-light tracking-tight mb-2">Sisteme Giriş</h1>
-          <p className="text-slate-400 text-sm mb-8 text-center px-4">Devam etmek için 4 haneli PIN kodunuzu giriniz.</p>
+          <h1 className="text-2xl font-light tracking-tight mb-2">{firmData?.name || 'Sisteme Giriş'}</h1>
+          <p className="text-slate-400 text-sm mb-4 text-center px-4">Devam etmek için 4-8 haneli PIN kodunuzu giriniz.</p>
+
+          {appUsers.length === 0 && (
+            <div className="mb-4 bg-purple-500/10 border border-purple-500/20 text-purple-400 px-4 py-3 rounded-xl flex items-center gap-3 w-full text-sm">
+                Varsayılan sistem yöneticisi PIN kodu: 1234
+            </div>
+          )}
+
+          {daysRemaining !== null && (
+            <div className="mb-6 bg-orange-500/10 border border-orange-500/20 text-orange-400 px-4 py-3 rounded-xl flex items-center gap-3 w-full animate-in fade-in slide-in-from-bottom-2">
+              <AlertTriangle className="w-5 h-5 shrink-0" />
+              <div className="text-sm font-medium">
+                Lisans sürenizin dolmasına <strong className="text-orange-300">{daysRemaining} gün</strong> kaldı.
+              </div>
+            </div>
+          )}
 
           {/* PIN Indicators */}
-          <div className="flex gap-4 mb-2 h-6">
-              {renderPinDots()}
+          <div className="flex gap-4 mb-2 h-6 items-center justify-center">
+              {pin.length === 0 ? (
+                  <span className="text-slate-500 text-sm">PIN giriniz...</span>
+              ) : (
+                  Array.from({ length: pin.length }).map((_, i) => (
+                      <div 
+                          key={i} 
+                          className={`w-4 h-4 rounded-full border-2 transition-colors duration-200 ${
+                            error ? 'bg-red-500 border-red-500' : 'bg-orange-500 border-orange-500'
+                          }`}
+                      />
+                  ))
+              )}
           </div>
           
           {/* Error message slot */}
@@ -102,9 +136,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
           {/* Hidden input for keyboard support */}
           <input 
               type="password"
-              maxLength={4}
+              maxLength={8}
               value={pin}
               onChange={handlePinChange}
+              onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSubmit();
+              }}
               className="opacity-0 absolute -z-10 focus:outline-none"
               autoFocus
           />
@@ -121,10 +158,10 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                   </button>
               ))}
               <button
-                  onClick={() => setPin('')}
-                  className="h-14 rounded-full hover:bg-white/5 flex items-center justify-center text-sm font-medium transition-colors text-slate-400"
+                  onClick={() => setPin(prev => prev.slice(0, -1))}
+                  className="h-14 rounded-full hover:bg-red-500/10 active:bg-red-500/20 flex items-center justify-center text-sm font-medium transition-colors text-slate-400 hover:text-red-400"
               >
-                  Temizle
+                  Sil
               </button>
               <button
                   onClick={() => handleNumpadClick('0')}
@@ -133,10 +170,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onLoginSuccess }) => {
                   0
               </button>
               <button
-                  onClick={() => setPin(prev => prev.slice(0, -1))}
-                  className="h-14 rounded-full hover:bg-white/5 flex items-center justify-center text-sm font-medium transition-colors text-slate-400"
+                  onClick={handleSubmit}
+                  disabled={pin.length < 4}
+                  className="h-14 rounded-full bg-orange-500 hover:bg-orange-600 focus:outline-none disabled:opacity-50 disabled:bg-slate-800 disabled:text-slate-500 flex items-center justify-center text-sm font-bold transition-all text-white active:scale-95"
               >
-                  Sil
+                  Giriş
               </button>
           </div>
         </div>

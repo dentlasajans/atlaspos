@@ -25,6 +25,18 @@ export interface OrderState {
   totalAmount: number;
 }
 
+export interface Firm {
+  id: string;
+  name: string;
+  firmCode: string;
+  isActive: boolean;
+  adminEmail: string;
+  createdAt: number;
+  plan: 'basic' | 'pro' | 'enterprise';
+  licenseStartDate?: number;
+  licenseEndDate?: number;
+}
+
 export interface AppUser {
   id: string;
   name: string;

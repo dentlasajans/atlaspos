@@ -1,17 +1,20 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCaNylnr8Z2yGkxbeur3Dhui5_5p_zh35Q",
-  authDomain: "atlaspos-c2a3e.firebaseapp.com",
-  projectId: "atlaspos-c2a3e",
-  storageBucket: "atlaspos-c2a3e.firebasestorage.app",
-  messagingSenderId: "7192452493",
-  appId: "1:7192452493:web:cd48d6c2fab668251571c4"
+  apiKey: "AIzaSyBvuwAYA1qytNJ_cjGnVyaFZdFD1jVWKKg",
+  authDomain: "atlaspos-8e4a9.firebaseapp.com",
+  projectId: "atlaspos-8e4a9",
+  storageBucket: "atlaspos-8e4a9.firebasestorage.app",
+  messagingSenderId: "694585401431",
+  appId: "1:694585401431:web:9ae472d2416926b66f8312",
+  measurementId: "G-K77WSNTLLY"
 };
 
 const app = initializeApp(firebaseConfig);
+const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 

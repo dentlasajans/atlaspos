@@ -268,11 +268,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
   };
 
   const handleAddUser = () => {
-      if (newUser.name && newUser.pin && newUser.pin.length === 4) {
+      if (newUser.name && newUser.pin && newUser.pin.length >= 4 && newUser.pin.length <= 8) {
           addAppUser({ name: newUser.name, pin: newUser.pin, role: newUser.role as any });
           setNewUser({ name: '', pin: '', role: 'waiter' });
       } else {
-          alert("Lütfen tüm alanları doldurun ve PIN'in 4 haneli olduğundan emin olun.");
+          alert("Lütfen tüm alanları doldurun ve PIN'in 4-8 haneli olduğundan emin olun.");
       }
   };
 
@@ -623,13 +623,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onLogout, onViewChan
                      <h2 className="text-xl font-semibold mb-4 text-slate-200">Personel Ekle</h2>
                      <div className="flex flex-col md:flex-row gap-3">
                         <input type="text" placeholder="Ad Soyad" value={newUser.name} onChange={e => setNewUser(p => ({...p, name: e.target.value}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500 w-full md:w-1/3" />
-                        <input type="text" placeholder="4 Haneli PIN" maxLength={4} value={newUser.pin} onChange={e => setNewUser(p => ({...p, pin: e.target.value.replace(/[^0-9]/g, '')}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500 w-full md:w-1/4" />
+                        <input type="text" placeholder="4-8 Haneli PIN" maxLength={8} value={newUser.pin} onChange={e => setNewUser(p => ({...p, pin: e.target.value.replace(/[^0-9]/g, '')}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500 w-full md:w-1/4" />
                         <select value={newUser.role} onChange={e => setNewUser(p => ({...p, role: e.target.value}))} className="bg-slate-900 border border-white/10 rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-purple-500 w-full md:w-1/4">
                             <option value="waiter">Garson</option>
                             <option value="cashier">Kasiyer</option>
                             <option value="admin">Yönetici</option>
                         </select>
-                        <button onClick={handleAddUser} disabled={!newUser.name || newUser.pin.length !== 4} className="bg-emerald-500 text-slate-950 px-6 py-2 rounded-xl font-semibold disabled:opacity-50 active:scale-95 w-full md:w-auto mt-2 md:mt-0">Ekle</button>
+                        <button onClick={handleAddUser} disabled={!newUser.name || newUser.pin.length < 4} className="bg-emerald-500 text-slate-950 px-6 py-2 rounded-xl font-semibold disabled:opacity-50 active:scale-95 w-full md:w-auto mt-2 md:mt-0">Ekle</button>
                      </div>
                   </div>
 

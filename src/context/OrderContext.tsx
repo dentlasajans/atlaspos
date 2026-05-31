@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { OrderItem, Product } from '../types';
 import { db, handleFirestoreError, OperationType } from '../lib/firebase';
 import { doc, setDoc, deleteDoc, onSnapshot, collection, updateDoc, increment } from 'firebase/firestore';
+import { useRestaurant } from './RestaurantContext';
 
 interface OrderState {
   items: OrderItem[];
@@ -24,6 +25,7 @@ const calculateTotal = (items: OrderItem[]) => {
 };
 
 export const OrderProvider = ({ children }: { children: ReactNode }) => {
+  const { firmId } = useRestaurant();
   const [globalState, setGlobalState] = useState<GlobalOrderState>({
     activeTableId: null,
     orders: {}
@@ -35,7 +37,9 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
   }, [globalState]);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, 'orders'), (snapshot) => {
+    if (!firmId) return;
+
+    const unsub = onSnapshot(collection(db, 'firms', firmId, 'orders'), (snapshot) => {
       const orders: Record<string, OrderState> = {};
       snapshot.forEach(docSnap => {
         try {
@@ -53,9 +57,10 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
     }, error => handleFirestoreError(error, OperationType.LIST, 'orders'));
 
     return unsub;
-  }, []);
+  }, [firmId]);
 
   const dispatch = React.useCallback(async (action: any) => {
+    if (!firmId) return;
     const currentState = globalStateRef.current;
     
     switch (action.type) {
@@ -86,7 +91,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         
         const totalAmount = calculateTotal(newItems);
         try {
-          await setDoc(doc(db, 'orders', tableId), {
+          await setDoc(doc(db, 'firms', firmId, 'orders', tableId), {
             tableId,
             items: JSON.stringify(newItems),
             totalAmount,
@@ -94,7 +99,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
           });
           
           if (action.payload.product.hasStock) {
-            await updateDoc(doc(db, 'products', action.payload.product.id), {
+            await updateDoc(doc(db, 'firms', firmId, 'products', action.payload.product.id), {
               stockCount: increment(-1)
             });
           }
@@ -115,9 +120,9 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         
         try {
            if (newItems.length === 0) {
-             await deleteDoc(doc(db, 'orders', tableId));
+             await deleteDoc(doc(db, 'firms', firmId, 'orders', tableId));
            } else {
-             await setDoc(doc(db, 'orders', tableId), {
+             await setDoc(doc(db, 'firms', firmId, 'orders', tableId), {
                 tableId,
                 items: JSON.stringify(newItems),
                 totalAmount,
@@ -126,7 +131,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
            }
            
            if (removedItem && removedItem.hasStock) {
-              await updateDoc(doc(db, 'products', removedItem.id), {
+              await updateDoc(doc(db, 'firms', firmId, 'products', removedItem.id), {
                  stockCount: increment(removedItem.quantity)
               });
            }
@@ -148,7 +153,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
         const totalAmount = calculateTotal(newItems);
         
         try {
-          await setDoc(doc(db, 'orders', tableId), {
+          await setDoc(doc(db, 'firms', firmId, 'orders', tableId), {
             tableId,
             items: JSON.stringify(newItems),
             totalAmount,
@@ -157,7 +162,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
 
           if (itemToUpdate && itemToUpdate.hasStock) {
              const quantityDiff = action.payload.quantity - itemToUpdate.quantity;
-             await updateDoc(doc(db, 'products', itemToUpdate.id), {
+             await updateDoc(doc(db, 'firms', firmId, 'products', itemToUpdate.id), {
                 stockCount: increment(-quantityDiff)
              });
           }
@@ -171,12 +176,12 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
          const tableOrderToClear = currentState.orders[currentState.activeTableId];
 
          try {
-           await deleteDoc(doc(db, 'orders', currentState.activeTableId));
+           await deleteDoc(doc(db, 'firms', firmId, 'orders', currentState.activeTableId));
 
            if (tableOrderToClear && tableOrderToClear.items) {
               for (const item of tableOrderToClear.items) {
                  if (item.hasStock) {
-                    await updateDoc(doc(db, 'products', item.id), {
+                    await updateDoc(doc(db, 'firms', firmId, 'products', item.id), {
                        stockCount: increment(item.quantity)
                     });
                  }
@@ -210,11 +215,11 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
              paymentMethod: action.payload.paymentMethod,
              createdAt: Date.now()
            };
-           const newSaleRef = doc(collection(db, 'sales'));
+           const newSaleRef = doc(collection(db, 'firms', firmId, 'sales'));
            await setDoc(newSaleRef, saleData);
 
            if (remainingTotal <= 0.01) {
-             await deleteDoc(doc(db, 'orders', tableId));
+             await deleteDoc(doc(db, 'firms', firmId, 'orders', tableId));
            } else {
              const newItems = [...tableOrderToCheckout.items, {
                  id: 'partial_' + Date.now(),
@@ -226,7 +231,7 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
                  image: ''
              }];
              const newTotalAmount = calculateTotal(newItems);
-             await setDoc(doc(db, 'orders', tableId), {
+             await setDoc(doc(db, 'firms', firmId, 'orders', tableId), {
                  tableId,
                  items: JSON.stringify(newItems),
                  totalAmount: newTotalAmount,
@@ -252,17 +257,17 @@ export const OrderProvider = ({ children }: { children: ReactNode }) => {
              paymentMethod: action.payload.paymentMethod,
              createdAt: Date.now()
            };
-           const newSaleRef = doc(collection(db, 'sales'));
+           const newSaleRef = doc(collection(db, 'firms', firmId, 'sales'));
            await setDoc(newSaleRef, saleData);
 
-           await deleteDoc(doc(db, 'orders', tableId));
+           await deleteDoc(doc(db, 'firms', firmId, 'orders', tableId));
          } catch(e) {
            handleFirestoreError(e, OperationType.WRITE, 'sales');
          }
          break;
       }
     }
-  }, []);
+  }, [firmId]);
 
   return (
     <OrderContext.Provider value={{
